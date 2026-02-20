@@ -1,7 +1,4 @@
 import type { FastifyInstance } from "fastify";
-import { eq } from "drizzle-orm";
-import { events } from "../db/schema.js";
-import { db } from "../db/index.js";
 import type { IEventsService } from "../interfaces/events.service.interface.js";
 
 interface EventsRoutesOptions {
