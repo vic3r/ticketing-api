@@ -4,3 +4,6 @@ export enum EventStatus {
     Published = 'published',
     Cancelled = 'cancelled',
 }
+
+/** DB returns this; use for repository/input types. */
+export type EventStatusValue = `${EventStatus}`;

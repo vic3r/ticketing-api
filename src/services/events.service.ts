@@ -1,4 +1,4 @@
-import { EventStatus } from '../enums/event-status.js';
+import { EventStatus, type EventStatusValue } from '../enums/event-status.js';
 import type { EventResponse } from '../dto/events.dto.js';
 import type { IEventsRepository } from '../interfaces/events.repository.interface.js';
 import type { IEventsService } from '../interfaces/events.service.interface.js';
@@ -12,7 +12,7 @@ function toEventResponse(record: {
     imageUrl: string | null;
     startDate: Date;
     endDate: Date;
-    status: 'draft' | 'published' | 'cancelled';
+    status: EventStatusValue;
     isPublished: boolean | null;
     createdAt: Date;
     updatedAt: Date;
