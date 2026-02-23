@@ -1,5 +1,5 @@
 import { EventStatus, type EventStatusValue } from '../enums/event-status.js';
-import type { EventResponse } from '../dto/events.dto.js';
+import type { EventRequest, EventResponse } from '../dto/events.dto.js';
 import type { IEventsRepository } from '../interfaces/events.repository.interface.js';
 import type { IEventsService } from '../interfaces/events.service.interface.js';
 
@@ -38,6 +38,14 @@ export function createEventsService(eventsRepository: IEventsRepository): IEvent
         async findAllPublished(): Promise<EventResponse[]> {
             const records = await eventsRepository.findAllPublished();
             return records.map(toEventResponse);
+        },
+        async findById(id: string): Promise<EventResponse> {
+            const record = await eventsRepository.findById(id);
+            return toEventResponse(record);
+        },
+        async create(event: EventRequest): Promise<EventResponse> {
+            const record = await eventsRepository.create(event);
+            return toEventResponse(record);
         },
     };
 }

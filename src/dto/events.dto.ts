@@ -18,3 +18,13 @@ export interface EventResponse {
     createdAt: Date;
     updatedAt: Date;
 }
+
+export interface EventRequest {
+    venueId: string;
+    organizerId: string;
+    name: string;
+    description: string | null;
+    imageUrl: string | null;
+    startDate: Date;
+    endDate: Date;
+}
