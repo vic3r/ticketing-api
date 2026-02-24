@@ -2,6 +2,7 @@ import { db } from '../db/index.js';
 import { seats } from '../db/schema.js';
 import { and, eq, inArray } from 'drizzle-orm';
 import type { ReservedSeatResponse } from '../dto/reservation.dto.js';
+import { SeatStatus } from '../enums/seat-status.js';
 import { ReservationConflictError } from '../errors/reservation.errors.js';
 import type { IReservationQueue } from '../interfaces/reservation-queue.interface.js';
 import type { IReservationRepository } from '../interfaces/reservation.repository.interface.js';
@@ -20,7 +21,7 @@ function toReservedSeatResponse(seat: {
         section: seat.section,
         row: seat.row,
         seatNumber: seat.seatNumber,
-        status: seat.status ?? 'reserved',
+        status: (seat.status as SeatStatus) ?? SeatStatus.Reserved,
     };
 }
 
@@ -32,7 +33,7 @@ export function createReservationRepository(
             for (const seatId of seatIds) {
                 await db
                     .update(seats)
-                    .set({ status: 'available', reservedUntil: null })
+                    .set({ status: SeatStatus.Available, reservedUntil: null })
                     .where(eq(seats.id, seatId));
             }
         },
@@ -47,7 +48,7 @@ export function createReservationRepository(
                     .where(
                         and(
                             inArray(seats.id, seatIds),
-                            eq(seats.status, 'available')
+                            eq(seats.status, SeatStatus.Available)
                         )
                     )
                     .for('update', { skipLocked: true });
@@ -61,7 +62,7 @@ export function createReservationRepository(
                 );
                 await tx
                     .update(seats)
-                    .set({ status: 'reserved', reservedUntil })
+                    .set({ status: SeatStatus.Reserved, reservedUntil })
                     .where(inArray(seats.id, seatIds));
 
                 return locked.map(toReservedSeatResponse);

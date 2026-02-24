@@ -3,6 +3,8 @@ import Stripe from 'stripe';
 import { db } from '../db/index.js';
 import { orders, seats, ticketTiers, tickets } from '../db/schema.js';
 import { eq, inArray } from 'drizzle-orm';
+import { OrderStatus } from '../enums/order-status.js';
+import { SeatStatus } from '../enums/seat-status.js';
 import { InvalidWebhookSignatureError, OrderCreationFailedError, SeatsNotFoundError } from '../errors/orders.errors.js';
 import type { CreateOrderResponse, OrderRequest, WebhookHandledResponse } from '../dto/orders.dto.js';
 import type { IOrdersRepository } from '../interfaces/orders.repository.interface.js';
@@ -10,6 +12,8 @@ import type { IOrdersRepository } from '../interfaces/orders.repository.interfac
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
     apiVersion: '2026-01-28.clover',
 });
+
+const CURRENCY = 'mxn';
 
 // --- Single-responsibility: seat queries ---
 
@@ -63,7 +67,7 @@ async function insertOrder(values: {
     userId: string;
     eventId: string;
     totalAmount: string;
-    status: 'pending';
+    status: OrderStatus;
     stripePaymentIntentId: string;
 }) {
     const [row] = await db.insert(orders).values(values).returning();
@@ -76,7 +80,7 @@ async function insertOrder(values: {
 async function markOrderPaidByPaymentIntentId(paymentIntentId: string) {
     await db
         .update(orders)
-        .set({ status: 'paid' })
+        .set({ status: OrderStatus.Paid })
         .where(eq(orders.stripePaymentIntentId, paymentIntentId));
 }
 
@@ -89,7 +93,7 @@ async function findOrderByPaymentIntentId(paymentIntentId: string) {
 // --- Single-responsibility: seat update (webhook) ---
 
 async function markSeatsSoldByIds(seatIds: string[]) {
-    await db.update(seats).set({ status: 'sold' }).where(inArray(seats.id, seatIds));
+    await db.update(seats).set({ status: SeatStatus.Sold }).where(inArray(seats.id, seatIds));
 }
 
 // --- Single-responsibility: ticket insert ---
@@ -133,7 +137,7 @@ export const createOrdersRepository = (): IOrdersRepository => {
 
             const paymentIntent = await createStripePaymentIntent({
                 amountCents: Math.round(totalAmount * 100),
-                currency: 'mxn',
+                currency: CURRENCY,
                 receiptEmail: email,
                 metadata: { eventId, userId, seatIds: seatIds.join(',') },
             });
@@ -142,7 +146,7 @@ export const createOrdersRepository = (): IOrdersRepository => {
                 userId,
                 eventId,
                 totalAmount: totalAmount.toFixed(2),
-                status: 'pending',
+                status: OrderStatus.Pending,
                 stripePaymentIntentId: paymentIntent.id,
             });
 
