@@ -1,6 +1,6 @@
 import { Job, Queue, Worker } from 'bullmq';
 import type { ConnectionOptions } from 'bullmq';
-import type { IReservationRepository } from '../interfaces/reservation.repositor.interface.js';
+import type { IReservationRepository } from '../interfaces/reservation.repository.interface.js';
 
 export function createReservationQueue(connection: ConnectionOptions): Queue {
     return new Queue('reservation', { connection });
