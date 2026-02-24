@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
+import { ReservationConflictError } from '../errors/reservation.errors.js';
 import type { IReservationService } from '../interfaces/reservation.service.interface.js';
-import { ReservationConflictError } from '../repositories/reservation.repository.js';
 
 interface ReservationsRoutesOptions {
     reservationService: IReservationService;
@@ -32,7 +32,7 @@ export async function reservationsRoutes(app: FastifyInstance, opts: Reservation
             if (error instanceof Error) {
                 return reply.status(500).send({ message: error.message });
             }
-            return reply.status(500).send({ message: 'Failed to lock seats for reservation' });
+            return reply.status(500).send({ message: 'An unknown error occurred' });
         }
     });
 }

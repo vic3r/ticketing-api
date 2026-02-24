@@ -1,6 +1,7 @@
 import { db } from '../db/index.js';
 import { events } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
+import { EventCreationFailedError } from '../errors/events.errors.js';
 import type { EventRecord, IEventsRepository } from '../interfaces/events.repository.interface.js';
 import type { EventRequest } from '../dto/events.dto.js';
 
@@ -33,7 +34,7 @@ export const eventsRepository: IEventsRepository = {
                 endDate: input.endDate,
             })
             .returning();
-        if (!record) throw new Error('Failed to create event');
+        if (!record) throw new EventCreationFailedError();
         return record;
     },
 };

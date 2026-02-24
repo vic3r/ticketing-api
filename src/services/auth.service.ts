@@ -1,21 +1,10 @@
 import bcrypt from 'bcrypt';
 import type { LoginBody, RegisterBody, UserResponse } from '../dto/auth.dto.js';
+import { EmailAlreadyRegisteredError, InvalidEmailOrPasswordError } from '../errors/auth.errors.js';
 import type { IAuthService } from '../interfaces/auth.service.interface.js';
 import type { IUserRepository } from '../interfaces/user.repository.interface.js';
 
-export class EmailAlreadyRegisteredError extends Error {
-    constructor() {
-        super('Email already registered');
-        this.name = 'EmailAlreadyRegisteredError';
-    }
-}
-
-export class InvalidEmailOrPasswordError extends Error {
-    constructor() {
-        super('Invalid email or password');
-        this.name = 'InvalidEmailOrPasswordError';
-    }
-}
+export { EmailAlreadyRegisteredError, InvalidEmailOrPasswordError };
 
 function toUserResponse(user: { id: string; email: string; name: string }): UserResponse {
     return { id: user.id, email: user.email, name: user.name };

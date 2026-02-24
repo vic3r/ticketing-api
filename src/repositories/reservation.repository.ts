@@ -2,17 +2,11 @@ import { db } from '../db/index.js';
 import { seats } from '../db/schema.js';
 import { and, eq, inArray } from 'drizzle-orm';
 import type { ReservedSeatResponse } from '../dto/reservation.dto.js';
+import { ReservationConflictError } from '../errors/reservation.errors.js';
 import type { IReservationQueue } from '../interfaces/reservation-queue.interface.js';
 import type { IReservationRepository } from '../interfaces/reservation.repository.interface.js';
 
 const RESERVATION_DURATION_MINUTES = 10;
-
-export class ReservationConflictError extends Error {
-    constructor(message = 'One or more seats are not available') {
-        super(message);
-        this.name = 'ReservationConflictError';
-    }
-}
 
 function toReservedSeatResponse(seat: {
     id: string;

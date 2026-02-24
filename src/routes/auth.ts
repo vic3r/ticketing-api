@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { LoginBody, LoginResponse, RegisterBody, RegisterResponse } from '../dto/auth.dto.js';
+import { EmailAlreadyRegisteredError, InvalidEmailOrPasswordError } from '../errors/auth.errors.js';
 import type { IAuthService } from '../interfaces/auth.service.interface.js';
-import { EmailAlreadyRegisteredError, InvalidEmailOrPasswordError } from '../services/auth.service.js';
 
 export const registerBodySchema = {
     body: {
@@ -47,9 +47,12 @@ export async function authRoutes(app: FastifyInstance, opts: AuthRoutesOptions) 
                 return reply.status(201).send(response);
             } catch (error) {
                 if (error instanceof EmailAlreadyRegisteredError) {
-                    return reply.status(400).send({ message: 'Email already registered' });
+                    return reply.status(400).send({ message: error.message });
                 }
-                throw error;
+                if (error instanceof Error) {
+                    return reply.status(500).send({ message: error.message });
+                }
+                return reply.status(500).send({ message: 'An unknown error occurred' });
             }
         }
     );
@@ -69,9 +72,12 @@ export async function authRoutes(app: FastifyInstance, opts: AuthRoutesOptions) 
                 return reply.status(200).send(response);
             } catch (error) {
                 if (error instanceof InvalidEmailOrPasswordError) {
-                    return reply.status(401).send({ message: 'Invalid email or password' });
+                    return reply.status(401).send({ message: error.message });
                 }
-                throw error;
+                if (error instanceof Error) {
+                    return reply.status(500).send({ message: error.message });
+                }
+                return reply.status(500).send({ message: 'An unknown error occurred' });
             }
         }
     );

@@ -3,6 +3,7 @@ import Stripe from 'stripe';
 import { db } from '../db/index.js';
 import { orders, seats, ticketTiers, tickets } from '../db/schema.js';
 import { eq, inArray } from 'drizzle-orm';
+import { InvalidWebhookSignatureError, OrderCreationFailedError, SeatsNotFoundError } from '../errors/orders.errors.js';
 import type { CreateOrderResponse, OrderRequest, WebhookHandledResponse } from '../dto/orders.dto.js';
 import type { IOrdersRepository } from '../interfaces/orders.repository.interface.js';
 
@@ -66,7 +67,7 @@ async function insertOrder(values: {
     stripePaymentIntentId: string;
 }) {
     const [row] = await db.insert(orders).values(values).returning();
-    if (!row) throw new Error('Failed to create order');
+    if (!row) throw new OrderCreationFailedError();
     return row;
 }
 
@@ -123,7 +124,7 @@ export const createOrdersRepository = (): IOrdersRepository => {
 
             const selectedSeats = await findSeatsByIds(seatIds);
             if (selectedSeats.length !== seatIds.length) {
-                throw new Error('One or more seats not found');
+                throw new SeatsNotFoundError();
             }
 
             const tierIds = [...new Set(selectedSeats.map((s) => s.ticketTierId).filter(Boolean))] as string[];
@@ -160,7 +161,7 @@ export const createOrdersRepository = (): IOrdersRepository => {
                     process.env.STRIPE_WEBHOOK_SECRET ?? ''
                 );
             } catch {
-                throw new Error('Invalid signature');
+                throw new InvalidWebhookSignatureError();
             }
 
             if (event.type !== 'payment_intent.succeeded') {
