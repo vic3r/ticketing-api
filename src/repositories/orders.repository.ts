@@ -5,6 +5,7 @@ import { orders, seats, ticketTiers, tickets } from '../db/schema.js';
 import { eq, inArray } from 'drizzle-orm';
 import { OrderStatus } from '../enums/order-status.js';
 import { SeatStatus } from '../enums/seat-status.js';
+import { StripeWebhookEventType } from '../enums/stripe-webhook-event.js';
 import { InvalidWebhookSignatureError, OrderCreationFailedError, SeatsNotFoundError } from '../errors/orders.errors.js';
 import type { CreateOrderResponse, OrderRequest, WebhookHandledResponse } from '../dto/orders.dto.js';
 import type { IOrdersRepository } from '../interfaces/orders.repository.interface.js';
@@ -168,7 +169,7 @@ export const createOrdersRepository = (): IOrdersRepository => {
                 throw new InvalidWebhookSignatureError();
             }
 
-            if (event.type !== 'payment_intent.succeeded') {
+            if (event.type !== StripeWebhookEventType.PaymentIntentSucceeded) {
                 return { received: true };
             }
 
