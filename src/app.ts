@@ -17,6 +17,9 @@ import { reservationsRoutes } from './routes/reservations.js';
 import { eventsRoutes } from './routes/events.js';
 import { createEventsService } from './services/events.service.js';
 import { eventsRepository } from './repositories/events.repository.js';
+import { ordersRoutes } from './routes/orders.js';
+import { createOrdersService } from './services/orders.service.js';
+import { createOrdersRepository } from './repositories/orders.repository.js';
 
 export interface AppDependencies {
     userRepository?: IUserRepository;
@@ -40,12 +43,14 @@ export const buildApp = (deps?: AppDependencies) => {
     app.register(authRoutes, { authService });
     const eventsService = deps?.eventsService ?? createEventsService(deps?.eventsRepository ?? eventsRepository);
     app.register(eventsRoutes, { eventsService });
-
     const queueConnection = createQueueConnection();
     const reservationQueue = createReservationQueue(queueConnection);
     const reservationRepository = createReservationRepository(reservationQueue);
     const reservationService = createReservationService(reservationRepository);
+    const ordersRepository = createOrdersRepository();
+    const ordersService = createOrdersService(ordersRepository);
     app.register(reservationsRoutes, { reservationService });
+    app.register(ordersRoutes, { ordersService });
 
     return app;
 };
