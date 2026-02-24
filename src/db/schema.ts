@@ -87,6 +87,7 @@ export const orders = pgTable('orders', {
     eventId: uuid('event_id').references(() => events.id),
     totalAmount: numeric('total_amount', { precision: 10, scale: 2 }).notNull(),
     status: orderStatusEnum('status').notNull().default('pending'),
+    stripePaymentIntentId: text('stripe_payment_intent_id'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
