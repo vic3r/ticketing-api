@@ -13,3 +13,8 @@ export interface CreateOrderResponse {
 
 /** Response body for POST /orders/checkout */
 export type CheckoutOrderResponse = CreateOrderResponse;
+
+/** Response after handling a Stripe webhook */
+export interface WebhookHandledResponse {
+    received: true;
+}
