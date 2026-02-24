@@ -6,6 +6,8 @@ import type { IAuthService } from './interfaces/auth.service.interface.js';
 import type { IEventsService } from './interfaces/events.service.interface.js';
 import type { IEventsRepository } from './interfaces/events.repository.interface.js';
 import type { IUserRepository } from './interfaces/user.repository.interface.js';
+import type { IReservationService } from './interfaces/reservation.service.interface.js';
+import type { IOrdersService } from './interfaces/orders.service.interface.js';
 import { userRepository } from './repositories/user.repository.js';
 import { createAuthService } from './services/auth.service.js';
 import { authRoutes } from './routes/auth.js';
@@ -26,6 +28,8 @@ export interface AppDependencies {
     authService?: IAuthService;
     eventsRepository?: IEventsRepository;
     eventsService?: IEventsService;
+    reservationService?: IReservationService;
+    ordersService?: IOrdersService;
 }
 
 export const buildApp = (deps?: AppDependencies) => {
@@ -43,12 +47,17 @@ export const buildApp = (deps?: AppDependencies) => {
     app.register(authRoutes, { authService });
     const eventsService = deps?.eventsService ?? createEventsService(deps?.eventsRepository ?? eventsRepository);
     app.register(eventsRoutes, { eventsService });
-    const queueConnection = createQueueConnection();
-    const reservationQueue = createReservationQueue(queueConnection);
-    const reservationRepository = createReservationRepository(reservationQueue);
-    const reservationService = createReservationService(reservationRepository);
-    const ordersRepository = createOrdersRepository();
-    const ordersService = createOrdersService(ordersRepository);
+    const reservationService =
+        deps?.reservationService ??
+        (() => {
+            const queueConnection = createQueueConnection();
+            const reservationQueue = createReservationQueue(queueConnection);
+            const reservationRepository = createReservationRepository(reservationQueue);
+            return createReservationService(reservationRepository);
+        })();
+    const ordersService =
+        deps?.ordersService ??
+        (() => createOrdersService(createOrdersRepository()))();
     app.register(reservationsRoutes, { reservationService });
     app.register(ordersRoutes, { ordersService });
 

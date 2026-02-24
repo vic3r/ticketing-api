@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { ReservationConflictError } from '../errors/reservation.errors.js';
 import type { IReservationService } from '../interfaces/reservation.service.interface.js';
+import { authenticate } from '../plugins/authenticate.js';
 
 interface ReservationsRoutesOptions {
     reservationService: IReservationService;
@@ -12,14 +13,14 @@ function isStringArray(value: unknown): value is string[] {
 
 export async function reservationsRoutes(app: FastifyInstance, opts: ReservationsRoutesOptions) {
     const { reservationService } = opts;
-    app.post('/reservations', async (request, reply) => {
+    app.post('/reservations', { preHandler: authenticate }, async (request, reply) => {
         const body = request.body as { seatIds?: unknown };
         const seatIds = body?.seatIds;
         if (!seatIds || !isStringArray(seatIds) || seatIds.length === 0) {
             return reply.status(400).send({ message: 'Seat IDs are required and must be a non-empty array of strings' });
         }
-        const user = request.user as { userId: string } | undefined;
-        if (!user) {
+        const user = request.user as { userId: string };
+        if (!user?.userId) {
             return reply.status(401).send({ message: 'Unauthorized' });
         }
         try {
