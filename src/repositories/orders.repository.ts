@@ -1,4 +1,4 @@
-import { sign } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import Stripe from 'stripe';
 import { db } from '../db/index.js';
 import { orders, seats, ticketTiers, tickets } from '../db/schema.js';
@@ -100,7 +100,7 @@ async function markSeatsSoldByIds(seatIds: string[]) {
 // --- Single-responsibility: ticket insert ---
 
 function generateTicketQrPayload(payload: { ticketId: string; userId: string; eventId: string; seatId: string }) {
-    return sign(payload, process.env.JWT_SECRET ?? '', { expiresIn: '30d' });
+    return jwt.sign(payload, process.env.JWT_SECRET ?? '', { expiresIn: '30d' });
 }
 
 async function insertTicket(values: {
