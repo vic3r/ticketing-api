@@ -20,11 +20,13 @@ export async function eventsRoutes(app: FastifyInstance, opts: EventsRoutesOptio
         try {
             const event = await eventsService.findById(id);
             if (!event) {
+                request.log.warn({ eventId: id }, 'event not found');
                 return reply.status(404).send({ message: 'Event not found' });
             }
             return reply.status(200).send(event);
         } catch (error) {
             if (error instanceof Error) {
+                request.log.error({ err: error, eventId: id }, 'get event failed');
                 return reply.status(500).send({ message: error.message });
             }
             return reply.status(500).send({ message: 'An unknown error occurred' });
@@ -35,12 +37,15 @@ export async function eventsRoutes(app: FastifyInstance, opts: EventsRoutesOptio
         const body = request.body;
         try {
             const event = await eventsService.create(body as EventRequest);
+            request.log.info({ eventId: event.id, name: event.name }, 'event created');
             return reply.status(201).send(event);
         } catch (error) {
             if (error instanceof EventCreationFailedError) {
+                request.log.error({ err: error }, 'event creation failed');
                 return reply.status(500).send({ message: error.message });
             }
             if (error instanceof Error) {
+                request.log.warn({ err: error }, 'event create validation/error');
                 return reply.status(400).send({ message: error.message });
             }
             return reply.status(500).send({ message: 'An unknown error occurred' });

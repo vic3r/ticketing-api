@@ -58,13 +58,16 @@ export async function authRoutes(app: FastifyInstance, opts: AuthRoutesOptions) 
                     { userId: user.id, email: user.email },
                     { expiresIn: '7d' }
                 );
+                request.log.info({ userId: user.id, email: user.email }, 'user registered');
                 const response: RegisterResponse = { token, user };
                 return reply.status(201).send(response);
             } catch (error) {
                 if (error instanceof EmailAlreadyRegisteredError) {
+                    request.log.warn({ email: body.email }, 'register failed: email already taken');
                     return reply.status(400).send({ message: error.message });
                 }
                 if (error instanceof Error) {
+                    request.log.error({ err: error, email: body.email }, 'register failed');
                     return reply.status(500).send({ message: getPublic500Message(error.message) });
                 }
                 return reply.status(500).send({ message: 'An unknown error occurred' });
@@ -88,13 +91,16 @@ export async function authRoutes(app: FastifyInstance, opts: AuthRoutesOptions) 
                     { userId: user.id, email: user.email },
                     { expiresIn: '7d' }
                 );
+                request.log.info({ userId: user.id, email: user.email }, 'user logged in');
                 const response: LoginResponse = { token, user };
                 return reply.status(200).send(response);
             } catch (error) {
                 if (error instanceof InvalidEmailOrPasswordError) {
+                    request.log.warn({ email: body.email }, 'login failed: invalid credentials');
                     return reply.status(401).send({ message: error.message });
                 }
                 if (error instanceof Error) {
+                    request.log.error({ err: error, email: body.email }, 'login failed');
                     return reply.status(500).send({ message: getPublic500Message(error.message) });
                 }
                 return reply.status(500).send({ message: 'An unknown error occurred' });

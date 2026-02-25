@@ -17,6 +17,7 @@ export async function reservationsRoutes(app: FastifyInstance, opts: Reservation
         const body = request.body as { seatIds?: unknown };
         const seatIds = body?.seatIds;
         if (!seatIds || !isStringArray(seatIds) || seatIds.length === 0) {
+            request.log.warn('reservation rejected: invalid seatIds');
             return reply.status(400).send({ message: 'Seat IDs are required and must be a non-empty array of strings' });
         }
         const user = request.user as { userId: string };
@@ -25,12 +26,15 @@ export async function reservationsRoutes(app: FastifyInstance, opts: Reservation
         }
         try {
             const seats = await reservationService.lockSeatsForReservation(user.userId, seatIds);
+            request.log.info({ userId: user.userId, seatIds, count: seats.length }, 'seats reserved');
             return reply.status(200).send({ seats });
         } catch (error) {
             if (error instanceof ReservationConflictError) {
+                request.log.warn({ userId: user.userId, seatIds }, 'reservation conflict: seats not available');
                 return reply.status(409).send({ message: error.message });
             }
             if (error instanceof Error) {
+                request.log.error({ err: error, userId: user.userId, seatIds }, 'reservation failed');
                 return reply.status(500).send({ message: error.message });
             }
             return reply.status(500).send({ message: 'An unknown error occurred' });

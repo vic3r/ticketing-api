@@ -15,8 +15,8 @@ import {
     authRateLimit as authRateLimitConfig,
     bodyLimit,
     helmetOptions,
-    genericErrorMessage,
 } from './config/security.js';
+import { loggerOptions } from './config/logger.js';
 import type { FastifyRequest } from 'fastify';
 import { userRepository } from './repositories/user.repository.js';
 import { createAuthService } from './services/auth.service.js';
@@ -51,16 +51,36 @@ export interface AppDependencies {
 export const buildApp = (deps?: AppDependencies) => {
     const app = Fastify({
         bodyLimit,
-        ...(process.env.NODE_ENV === 'production' && { logger: true }),
+        logger: loggerOptions,
+        disableRequestLogging: true, // we log in onResponse with level by statusCode
+        schemaErrorFormatter(errors, dataVar) {
+            const messages = errors.map((e: { instancePath?: string; message?: string }) => `${dataVar}${e.instancePath ?? ''} ${e.message ?? ''}`).join(', ');
+            const err = new Error(messages) as Error & { statusCode: number; code: string };
+            err.statusCode = 400;
+            err.code = 'FST_ERR_VALIDATION';
+            return err;
+        },
     });
 
-    app.setErrorHandler((error: unknown, _request, reply) => {
-        const isProd = process.env.NODE_ENV === 'production';
-        const err = error as { statusCode?: number; message?: string };
-        const statusCode = err.statusCode ?? 500;
-        const message = isProd && statusCode === 500 ? genericErrorMessage : (err.message ?? genericErrorMessage);
-        void reply.status(statusCode).send({ message });
+    app.addHook('onRequest', (request, _reply, done) => {
+        (request.raw as { reqStartTime?: number }).reqStartTime = Date.now();
+        done();
     });
+    app.addHook('onResponse', (request, reply, done) => {
+        const statusCode = reply.statusCode;
+        const reqStart = (request.raw as { reqStartTime?: number }).reqStartTime ?? Date.now();
+        const logPayload = {
+            method: request.method,
+            url: request.url,
+            statusCode,
+            responseTimeMs: Date.now() - reqStart,
+        };
+        if (statusCode >= 500) request.log.error(logPayload, 'request completed');
+        else if (statusCode >= 400) request.log.warn(logPayload, 'request completed');
+        else request.log.info(logPayload, 'request completed');
+        done();
+    });
+
 
     app.register(helmet, helmetOptions);
     app.register(cors, { origin: getCorsOrigin(), credentials: true });
