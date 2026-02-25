@@ -28,6 +28,28 @@ HTTP server spans are created automatically (method, URL, status code). Custom s
 
 ## Exporting traces
 
+### Docker Compose (Jaeger) — recommended for local viewing
+
+The project’s `docker-compose.yml` includes **Jaeger** and wires the API to send traces to it.
+
+1. Start the stack (postgres, redis, Jaeger, API):
+   ```bash
+   docker compose up -d
+   ```
+2. Open the **Jaeger UI**: [http://localhost:16686](http://localhost:16686)
+3. In the UI, choose **Service** `ticketing-api`, then **Find Traces**. You’ll see one trace per request; open a trace to see the HTTP span and child spans (e.g. `auth.register`, `orders.checkout`) with durations.
+
+The API container is already configured with:
+
+- `OTEL_SERVICE_NAME=ticketing-api`
+- `OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318`
+- `OTEL_TRACES_EXPORTER=otlp`
+
+To run the API locally but still send traces to Jaeger started by Compose, set in your `.env`:
+
+- `OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318`
+- `OTEL_TRACES_EXPORTER=otlp`
+
 ### Kibana / Elastic APM
 
 1. Run Elastic Stack with APM (or Elastic Cloud with APM).
@@ -38,7 +60,7 @@ HTTP server spans are created automatically (method, URL, status code). Custom s
 
 Elastic APM accepts OTLP; ensure the APM server is configured for OTLP ingestion.
 
-### Jaeger
+### Jaeger (standalone)
 
 1. Run Jaeger with OTLP receiver (e.g. all-in-one with `COLLECTOR_OTLP_ENABLED=true`).
 2. Set:

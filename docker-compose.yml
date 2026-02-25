@@ -19,6 +19,14 @@ services:
       - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: ticketing-jaeger
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"   # Jaeger UI
+      - "4318:4318"     # OTLP HTTP (traces from API)
   api:
     build:
       context: .
@@ -31,6 +39,17 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - JWT_SECRET=your-256-bit-secret-key-here-change-in-production-minimum-32-characters
+      # Send traces to Jaeger (OTLP HTTP)
+      - OTEL_SERVICE_NAME=ticketing-api
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+      - OTEL_TRACES_EXPORTER=otlp
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
 
 volumes:
   postgres_data:
