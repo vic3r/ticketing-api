@@ -3,6 +3,10 @@ import type { EventRequest, EventResponse } from '../dto/events.dto.js';
 import type { IEventsRepository } from '../interfaces/events.repository.interface.js';
 import type { IEventsService } from '../interfaces/events.service.interface.js';
 
+function toDate(v: Date | string): Date {
+    return v instanceof Date ? v : new Date(v);
+}
+
 function toEventResponse(record: {
     id: string;
     organizerId: string | null;
@@ -10,12 +14,12 @@ function toEventResponse(record: {
     name: string;
     description: string | null;
     imageUrl: string | null;
-    startDate: Date;
-    endDate: Date;
+    startDate: Date | string;
+    endDate: Date | string;
     status: EventStatusValue;
     isPublished: boolean | null;
-    createdAt: Date;
-    updatedAt: Date;
+    createdAt: Date | string;
+    updatedAt: Date | string;
 }): EventResponse {
     return {
         id: record.id,
@@ -24,12 +28,12 @@ function toEventResponse(record: {
         name: record.name,
         description: record.description,
         imageUrl: record.imageUrl,
-        startDate: record.startDate,
-        endDate: record.endDate,
+        startDate: toDate(record.startDate),
+        endDate: toDate(record.endDate),
         status: record.status as EventStatus,
         isPublished: record.isPublished,
-        createdAt: record.createdAt,
-        updatedAt: record.updatedAt,
+        createdAt: toDate(record.createdAt),
+        updatedAt: toDate(record.updatedAt),
     };
 }
 
@@ -39,8 +43,9 @@ export function createEventsService(eventsRepository: IEventsRepository): IEvent
             const records = await eventsRepository.findAllPublished();
             return records.map(toEventResponse);
         },
-        async findById(id: string): Promise<EventResponse> {
+        async findById(id: string): Promise<EventResponse | null> {
             const record = await eventsRepository.findById(id);
+            if (!record) return null;
             return toEventResponse(record);
         },
         async create(event: EventRequest): Promise<EventResponse> {

@@ -6,6 +6,6 @@ export type EventRecord = InferSelectModel<typeof events>;
 
 export interface IEventsRepository {
     findAllPublished(): Promise<EventRecord[]>;
-    findById(id: string): Promise<EventRecord>;
+    findById(id: string): Promise<EventRecord | null>;
     create(event: EventRequest): Promise<EventRecord>;
 }

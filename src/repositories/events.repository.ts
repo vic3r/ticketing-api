@@ -7,21 +7,15 @@ import type { EventRequest } from '../dto/events.dto.js';
 
 export const eventsRepository: IEventsRepository = {
     async findAllPublished() {
-        return db.query.events.findMany({
-            where: eq(events.isPublished, true),
-        });
+        return db.select().from(events).where(eq(events.isPublished, true));
     },
     async findById(id) {
-        return db.query.events.findFirst({
-            where: eq(events.id, id),
-            with: {
-                venue: true,
-                ticketTiers: true,
-                seats: true,
-            },
-        }) as unknown as EventRecord;
+        const rows = await db.select().from(events).where(eq(events.id, id)).limit(1);
+        return rows[0] ?? null;
     },
     async create(input: EventRequest) {
+        const startDate = input.startDate instanceof Date ? input.startDate : new Date(input.startDate as unknown as string);
+        const endDate = input.endDate instanceof Date ? input.endDate : new Date(input.endDate as unknown as string);
         const [record] = await db
             .insert(events)
             .values({
@@ -30,8 +24,8 @@ export const eventsRepository: IEventsRepository = {
                 name: input.name,
                 description: input.description,
                 imageUrl: input.imageUrl,
-                startDate: input.startDate,
-                endDate: input.endDate,
+                startDate,
+                endDate,
             })
             .returning();
         if (!record) throw new EventCreationFailedError();
