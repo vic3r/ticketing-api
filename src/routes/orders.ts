@@ -6,6 +6,7 @@ import {
     OrderCreationFailedError,
     SeatsNotFoundError,
 } from '../errors/orders.errors.js';
+import { runWithSpan } from '../tracing.js';
 
 export interface OrdersRoutesOptions {
     ordersService: IOrdersService;
@@ -16,7 +17,12 @@ export async function ordersRoutes(app: FastifyInstance, opts: OrdersRoutesOptio
     app.post('/orders/checkout', async (request, reply) => {
         const body = request.body as OrderRequest;
         try {
-            const result: CheckoutOrderResponse = await ordersService.checkOut(body);
+            const result: CheckoutOrderResponse = await runWithSpan('orders.checkout', (span) => {
+                span.setAttribute('order.userId', body.userId);
+                span.setAttribute('order.eventId', body.eventId);
+                span.setAttribute('order.seatCount', body.seatIds?.length ?? 0);
+                return ordersService.checkOut(body);
+            });
             request.log.info({ orderId: result.orderId, userId: body.userId, eventId: body.eventId }, 'checkout completed');
             return reply.status(200).send(result);
         } catch (error) {
@@ -43,7 +49,7 @@ export async function ordersRoutes(app: FastifyInstance, opts: OrdersRoutesOptio
         const body = raw ?? (typeof request.body === 'object' ? JSON.stringify(request.body ?? {}) : String(request.body ?? ''));
         const payload = { body, signature };
         try {
-            const result = await ordersService.handleWebhook(payload);
+            const result = await runWithSpan('orders.webhook', () => ordersService.handleWebhook(payload));
             request.log.info({ received: result.received }, 'webhook handled');
             return reply.status(200).send(result);
         } catch (error) {

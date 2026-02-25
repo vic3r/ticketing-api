@@ -3,6 +3,7 @@ import type { LoginBody, LoginResponse, RegisterBody, RegisterResponse } from '.
 import { EmailAlreadyRegisteredError, InvalidEmailOrPasswordError } from '../errors/auth.errors.js';
 import type { IAuthService } from '../interfaces/auth.service.interface.js';
 import { authRateLimit, getPublic500Message } from '../config/security.js';
+import { runWithSpan } from '../tracing.js';
 
 /** Max lengths to prevent abuse and align with OWASP input validation. */
 const EMAIL_MAX_LENGTH = 255;
@@ -53,7 +54,10 @@ export async function authRoutes(app: FastifyInstance, opts: AuthRoutesOptions) 
         async (request, reply) => {
             const body = request.body;
             try {
-                const user = await authService.register(body);
+                const user = await runWithSpan('auth.register', async (span) => {
+                    span.setAttribute('auth.email', body.email);
+                    return authService.register(body);
+                });
                 const token = app.jwt.sign(
                     { userId: user.id, email: user.email },
                     { expiresIn: '7d' }
@@ -86,7 +90,10 @@ export async function authRoutes(app: FastifyInstance, opts: AuthRoutesOptions) 
         async (request, reply) => {
             const body = request.body;
             try {
-                const user = await authService.login(body);
+                const user = await runWithSpan('auth.login', async (span) => {
+                    span.setAttribute('auth.email', body.email);
+                    return authService.login(body);
+                });
                 const token = app.jwt.sign(
                     { userId: user.id, email: user.email },
                     { expiresIn: '7d' }

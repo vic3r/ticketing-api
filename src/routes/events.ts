@@ -3,6 +3,7 @@ import type { EventRequest } from '../dto/events.dto.js';
 import { EventCreationFailedError } from '../errors/events.errors.js';
 import type { IEventsService } from '../interfaces/events.service.interface.js';
 import { authenticate } from '../plugins/authenticate.js';
+import { runWithSpan } from '../tracing.js';
 
 interface EventsRoutesOptions {
     eventsService: IEventsService;
@@ -10,15 +11,18 @@ interface EventsRoutesOptions {
 
 export async function eventsRoutes(app: FastifyInstance, opts: EventsRoutesOptions) {
     const { eventsService } = opts;
-    app.get('/events', async (request, reply) => {
-        const allEvents = await eventsService.findAllPublished();
+    app.get('/events', async (_request, reply) => {
+        const allEvents = await runWithSpan('events.findAll', () => eventsService.findAllPublished());
         return reply.status(200).send(allEvents);
     });
 
     app.get('/events/:id', async (request, reply) => {
         const { id } = request.params as { id: string };
         try {
-            const event = await eventsService.findById(id);
+            const event = await runWithSpan('events.findById', (span) => {
+                span.setAttribute('event.id', id);
+                return eventsService.findById(id);
+            });
             if (!event) {
                 request.log.warn({ eventId: id }, 'event not found');
                 return reply.status(404).send({ message: 'Event not found' });
@@ -36,7 +40,10 @@ export async function eventsRoutes(app: FastifyInstance, opts: EventsRoutesOptio
     app.post('/events', { preHandler: authenticate }, async (request, reply) => {
         const body = request.body;
         try {
-            const event = await eventsService.create(body as EventRequest);
+            const event = await runWithSpan('events.create', (span) => {
+                span.setAttribute('event.name', (body as EventRequest).name ?? '');
+                return eventsService.create(body as EventRequest);
+            });
             request.log.info({ eventId: event.id, name: event.name }, 'event created');
             return reply.status(201).send(event);
         } catch (error) {

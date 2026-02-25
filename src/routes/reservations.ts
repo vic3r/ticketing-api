@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { ReservationConflictError } from '../errors/reservation.errors.js';
 import type { IReservationService } from '../interfaces/reservation.service.interface.js';
 import { authenticate } from '../plugins/authenticate.js';
+import { runWithSpan } from '../tracing.js';
 
 interface ReservationsRoutesOptions {
     reservationService: IReservationService;
@@ -25,7 +26,11 @@ export async function reservationsRoutes(app: FastifyInstance, opts: Reservation
             return reply.status(401).send({ message: 'Unauthorized' });
         }
         try {
-            const seats = await reservationService.lockSeatsForReservation(user.userId, seatIds);
+            const seats = await runWithSpan('reservations.lockSeats', (span) => {
+                span.setAttribute('reservation.userId', user.userId);
+                span.setAttribute('reservation.seatCount', seatIds.length);
+                return reservationService.lockSeatsForReservation(user.userId, seatIds);
+            });
             request.log.info({ userId: user.userId, seatIds, count: seats.length }, 'seats reserved');
             return reply.status(200).send({ seats });
         } catch (error) {

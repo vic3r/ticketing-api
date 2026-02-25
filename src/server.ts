@@ -1,5 +1,8 @@
 import 'dotenv/config';
+import { initTracing } from './tracing.js';
 import { buildApp } from './app.js';
+
+initTracing();
 
 const app = buildApp();
 
