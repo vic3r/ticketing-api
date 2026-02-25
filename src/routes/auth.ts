@@ -2,15 +2,21 @@ import type { FastifyInstance } from 'fastify';
 import type { LoginBody, LoginResponse, RegisterBody, RegisterResponse } from '../dto/auth.dto.js';
 import { EmailAlreadyRegisteredError, InvalidEmailOrPasswordError } from '../errors/auth.errors.js';
 import type { IAuthService } from '../interfaces/auth.service.interface.js';
+import { authRateLimit, getPublic500Message } from '../config/security.js';
+
+/** Max lengths to prevent abuse and align with OWASP input validation. */
+const EMAIL_MAX_LENGTH = 255;
+const PASSWORD_MAX_LENGTH = 512;
+const NAME_MAX_LENGTH = 200;
 
 export const registerBodySchema = {
     body: {
         type: 'object',
         required: ['email', 'password', 'name'],
         properties: {
-            email: { type: 'string', format: 'email' },
-            password: { type: 'string', minLength: 1 },
-            name: { type: 'string', minLength: 1 },
+            email: { type: 'string', format: 'email', maxLength: EMAIL_MAX_LENGTH },
+            password: { type: 'string', minLength: 1, maxLength: PASSWORD_MAX_LENGTH },
+            name: { type: 'string', minLength: 1, maxLength: NAME_MAX_LENGTH },
         },
     },
 } as const;
@@ -20,21 +26,30 @@ export const loginBodySchema = {
         type: 'object',
         required: ['email', 'password'],
         properties: {
-            email: { type: 'string', format: 'email' },
-            password: { type: 'string', minLength: 1 },
+            email: { type: 'string', format: 'email', maxLength: EMAIL_MAX_LENGTH },
+            password: { type: 'string', minLength: 1, maxLength: PASSWORD_MAX_LENGTH },
         },
     },
 } as const;
 
 interface AuthRoutesOptions {
     authService: IAuthService;
+    authRateLimitMax?: number;
+    authRateLimitTimeWindowMs?: number;
 }
 
 export async function authRoutes(app: FastifyInstance, opts: AuthRoutesOptions) {
-    const { authService } = opts;
+    const { authService, authRateLimitMax, authRateLimitTimeWindowMs } = opts;
+    const authMax = authRateLimitMax ?? authRateLimit.max;
+    const authWindow = authRateLimitTimeWindowMs ?? authRateLimit.timeWindowMs;
     app.post<{ Body: RegisterBody }>(
         '/auth/register',
-        { schema: registerBodySchema },
+        {
+            schema: registerBodySchema,
+            config: {
+                rateLimit: { max: authMax, timeWindow: authWindow },
+            },
+        },
         async (request, reply) => {
             const body = request.body;
             try {
@@ -50,7 +65,7 @@ export async function authRoutes(app: FastifyInstance, opts: AuthRoutesOptions) 
                     return reply.status(400).send({ message: error.message });
                 }
                 if (error instanceof Error) {
-                    return reply.status(500).send({ message: error.message });
+                    return reply.status(500).send({ message: getPublic500Message(error.message) });
                 }
                 return reply.status(500).send({ message: 'An unknown error occurred' });
             }
@@ -59,7 +74,12 @@ export async function authRoutes(app: FastifyInstance, opts: AuthRoutesOptions) 
 
     app.post<{ Body: LoginBody }>(
         '/auth/login',
-        { schema: loginBodySchema },
+        {
+            schema: loginBodySchema,
+            config: {
+                rateLimit: { max: authMax, timeWindow: authWindow },
+            },
+        },
         async (request, reply) => {
             const body = request.body;
             try {
@@ -75,7 +95,7 @@ export async function authRoutes(app: FastifyInstance, opts: AuthRoutesOptions) 
                     return reply.status(401).send({ message: error.message });
                 }
                 if (error instanceof Error) {
-                    return reply.status(500).send({ message: error.message });
+                    return reply.status(500).send({ message: getPublic500Message(error.message) });
                 }
                 return reply.status(500).send({ message: 'An unknown error occurred' });
             }
