@@ -4,41 +4,41 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    push:
+        branches: [main]
+    pull_request:
+        branches: [main]
 
 defaults:
-  run:
-    working-directory: ticketing-api
+    run:
+        working-directory: ticketing-api
 
 jobs:
-  lint-test-build:
-    name: Lint, test & build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    lint-test-build:
+        name: Lint, test & build
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-          cache-dependency-path: ticketing-api/package-lock.json
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: 'npm'
+                  cache-dependency-path: ticketing-api/package-lock.json
 
-      - name: Install dependencies
-        run: npm ci
+            - name: Install dependencies
+              run: npm ci
 
-      - name: Format check
-        run: npm run format:check
+            - name: Format check
+              run: npm run format:check
 
-      - name: Lint
-        run: npm run lint
+            - name: Lint
+              run: npm run lint
 
-      - name: Test
-        run: npm run test
+            - name: Test
+              run: npm run test
 
-      - name: Build
-        run: npm run build
+            - name: Build
+              run: npm run build
