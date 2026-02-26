@@ -74,6 +74,14 @@ Run the entire stack (API, Postgres, Redis, Kafka, Jaeger, Traefik) in one comma
 
 ---
 
+## Monitoring & SPM (Jaeger)
+
+- **Traces:** The API sends OpenTelemetry traces to Jaeger when `OTEL_EXPORTER_OTLP_ENDPOINT` is set (e.g. `http://jaeger:4318` in Docker). Open **http://localhost:16686** to use the Jaeger UI.
+- **Jaeger Monitor (trace-based SPM):** In Jaeger, open **Monitor** and select the service `ticketing-api` to see request rate, latency percentiles, and error rate derived from traces.
+- **OTLP metrics (SPM):** When `OTEL_METRICS_EXPORTER=otlp` and `OTEL_EXPORTER_OTLP_ENDPOINT` are set, the API also exports **Service Performance Monitoring** metrics (`http.server.request.duration`, `http.server.request.count`) to the same OTLP endpoint. Jaeger all-in-one accepts OTLP; for full metrics dashboards you can use an [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) to receive both traces and metrics and forward metrics to Prometheus/Grafana if needed.
+
+---
+
 ## Project structure
 
 ```
@@ -94,6 +102,7 @@ src/
 ├── routes/          # HTTP routes (auth, events, orders, reservations, venues)
 ├── services/        # Business logic
 ├── app.ts           # Fastify app builder
+├── metrics.ts       # OpenTelemetry SPM metrics (request duration, count)
 ├── server.ts        # HTTP server entry
 └── tracing.ts       # OpenTelemetry tracing
 ```

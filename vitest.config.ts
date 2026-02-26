@@ -17,6 +17,7 @@ export default defineConfig({
                 'src/db/schema.ts',
                 '**/*.test.ts',
                 'src/server.ts',
+                'src/metrics.ts',
                 'src/**/*.interface.ts',
                 'src/dto/**',
                 'src/models/**',

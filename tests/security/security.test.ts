@@ -14,6 +14,7 @@ describe('Security', () => {
         findAllPublished: vi.fn().mockResolvedValue([]),
         findById: vi.fn(),
         create: vi.fn(),
+        getSeatsForEvent: vi.fn(),
     };
     const mockReservation: IReservationService = {
         reserve: vi.fn(),

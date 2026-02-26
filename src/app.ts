@@ -41,6 +41,7 @@ import { createOrdersService } from './services/orders.service.js';
 import { createOrdersRepository } from './repositories/orders.repository.js';
 import { createPaymentProducer } from './messaging/kafka/producer.js';
 import { isKafkaEnabled } from './messaging/kafka/config.js';
+import { recordRequestMetrics } from './metrics.js';
 
 export interface AppDependencies {
     userRepository?: IUserRepository;
@@ -87,15 +88,22 @@ export const buildApp = async (deps?: AppDependencies) => {
     app.addHook('onResponse', (request, reply, done) => {
         const statusCode = reply.statusCode;
         const reqStart = (request.raw as { reqStartTime?: number }).reqStartTime ?? Date.now();
+        const responseTimeMs = Date.now() - reqStart;
         const logPayload = {
             method: request.method,
             url: request.url,
             statusCode,
-            responseTimeMs: Date.now() - reqStart,
+            responseTimeMs,
         };
         if (statusCode >= 500) request.log.error(logPayload, 'request completed');
         else if (statusCode >= 400) request.log.warn(logPayload, 'request completed');
         else request.log.info(logPayload, 'request completed');
+        recordRequestMetrics({
+            method: request.method,
+            route: (request as { routerPath?: string }).routerPath ?? request.url,
+            statusCode,
+            durationMs: responseTimeMs,
+        });
         done();
     });
 

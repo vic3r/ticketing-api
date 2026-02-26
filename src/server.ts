@@ -1,8 +1,10 @@
 import 'dotenv/config';
 import { initTracing } from './tracing.js';
+import { initMetrics } from './metrics.js';
 import { buildApp } from './app.js';
 
 initTracing();
+initMetrics();
 
 const app = await buildApp();
 

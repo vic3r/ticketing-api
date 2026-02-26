@@ -111,6 +111,7 @@ services:
             OTEL_SERVICE_NAME: ticketing-api
             OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
             OTEL_TRACES_EXPORTER: otlp
+            OTEL_METRICS_EXPORTER: otlp
             EVENTS_CACHE_TTL_SECONDS: 60
         depends_on:
             postgres:
