@@ -19,6 +19,7 @@ export const userRepository: IUserRepository = {
                 email: data.email,
                 passwordHash: data.passwordHash,
                 name: data.name,
+                role: data.role ?? 'user',
             })
             .returning();
         if (!user) throw new Error('Failed to create user');

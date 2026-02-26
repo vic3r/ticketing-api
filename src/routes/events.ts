@@ -3,6 +3,7 @@ import type { EventRequest } from '../dto/events.dto.js';
 import { EventCreationFailedError } from '../errors/events.errors.js';
 import type { IEventsService } from '../interfaces/events.service.interface.js';
 import { authenticate } from '../plugins/authenticate.js';
+import { requireAdmin } from '../plugins/requireAdmin.js';
 import { runWithSpan } from '../tracing.js';
 
 interface EventsRoutesOptions {
@@ -37,7 +38,7 @@ export async function eventsRoutes(app: FastifyInstance, opts: EventsRoutesOptio
         }
     });
 
-    app.post('/events', { preHandler: authenticate }, async (request, reply) => {
+    app.post('/events', { preHandler: [authenticate, requireAdmin] }, async (request, reply) => {
         const body = request.body;
         try {
             const event = await runWithSpan('events.create', (span) => {

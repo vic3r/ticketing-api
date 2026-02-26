@@ -59,7 +59,7 @@ export async function authRoutes(app: FastifyInstance, opts: AuthRoutesOptions) 
                     return authService.register(body);
                 });
                 const token = app.jwt.sign(
-                    { userId: user.id, email: user.email },
+                    { userId: user.id, email: user.email, role: user.role },
                     { expiresIn: '7d' }
                 );
                 request.log.info({ userId: user.id, email: user.email }, 'user registered');
@@ -95,7 +95,7 @@ export async function authRoutes(app: FastifyInstance, opts: AuthRoutesOptions) 
                     return authService.login(body);
                 });
                 const token = app.jwt.sign(
-                    { userId: user.id, email: user.email },
+                    { userId: user.id, email: user.email, role: user.role },
                     { expiresIn: '7d' }
                 );
                 request.log.info({ userId: user.id, email: user.email }, 'user logged in');

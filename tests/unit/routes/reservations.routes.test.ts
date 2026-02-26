@@ -20,6 +20,9 @@ describe('Reservations routes', () => {
         vi.clearAllMocks();
     });
 
+    const validSeatId = '550e8400-e29b-41d4-a716-446655440001';
+    const validSeatId2 = '550e8400-e29b-41d4-a716-446655440002';
+
     function validToken() {
         return app.jwt.sign({ userId: 'user-1', email: 'u@example.com' }, { expiresIn: '7d' });
     }
@@ -27,12 +30,12 @@ describe('Reservations routes', () => {
     describe('POST /reservations', () => {
         it('returns 200 and seats (happy path)', async () => {
             vi.mocked(mockReservationService.lockSeatsForReservation).mockResolvedValue([
-                { seatId: 's1', reservationId: 'r1', expiresAt: new Date() },
+                { seatId: validSeatId, reservationId: 'r1', expiresAt: new Date() },
             ]);
             const res = await app.inject({
                 method: 'POST',
                 url: '/reservations',
-                payload: { seatIds: ['s1', 's2'] },
+                payload: { seatIds: [validSeatId, validSeatId2] },
                 headers: { authorization: `Bearer ${validToken()}` },
             });
             expect(res.statusCode).toBe(200);
@@ -44,7 +47,7 @@ describe('Reservations routes', () => {
             const res = await app.inject({
                 method: 'POST',
                 url: '/reservations',
-                payload: { seatIds: ['s1'] },
+                payload: { seatIds: [validSeatId] },
             });
             expect(res.statusCode).toBe(401);
         });
@@ -77,7 +80,7 @@ describe('Reservations routes', () => {
             const res = await app.inject({
                 method: 'POST',
                 url: '/reservations',
-                payload: { seatIds: ['s1'] },
+                payload: { seatIds: [validSeatId] },
                 headers: { authorization: `Bearer ${validToken()}` },
             });
             expect(res.statusCode).toBe(409);
@@ -89,7 +92,7 @@ describe('Reservations routes', () => {
             const res = await app.inject({
                 method: 'POST',
                 url: '/reservations',
-                payload: { seatIds: ['s1'] },
+                payload: { seatIds: [validSeatId] },
                 headers: { authorization: `Bearer ${validToken()}` },
             });
             expect(res.statusCode).toBe(500);

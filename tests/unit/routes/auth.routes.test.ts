@@ -27,6 +27,7 @@ describe('Auth routes', () => {
                 id: 'user-1',
                 email: 'test@example.com',
                 name: 'Test',
+                role: 'user',
             });
             const res = await app.inject({
                 method: 'POST',
@@ -36,7 +37,7 @@ describe('Auth routes', () => {
             expect(res.statusCode).toBe(201);
             const body = res.json();
             expect(body).toHaveProperty('token');
-            expect(body.user).toEqual({ id: 'user-1', email: 'test@example.com', name: 'Test' });
+            expect(body.user).toEqual({ id: 'user-1', email: 'test@example.com', name: 'Test', role: 'user' });
         });
 
         it('returns 400 when email already registered', async () => {
@@ -77,6 +78,7 @@ describe('Auth routes', () => {
                 id: 'u1',
                 email: 'u@example.com',
                 name: 'User',
+                role: 'user',
             });
             const res = await app.inject({
                 method: 'POST',

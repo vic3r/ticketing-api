@@ -61,6 +61,7 @@ describe('App integration', () => {
                 id: 'u1',
                 email: 'u@example.com',
                 name: 'User',
+                role: 'user',
             });
             const reg = await app.inject({
                 method: 'POST',
@@ -75,6 +76,7 @@ describe('App integration', () => {
                 id: 'u1',
                 email: 'u@example.com',
                 name: 'User',
+                role: 'user',
             });
             const login = await app.inject({
                 method: 'POST',
@@ -152,7 +154,7 @@ describe('App integration', () => {
                 updatedAt: new Date(),
             };
             vi.mocked(mockEventsService.create).mockResolvedValue(event);
-            const token = app.jwt.sign({ userId: 'o1', email: 'o@o.com' }, { expiresIn: '7d' });
+            const token = app.jwt.sign({ userId: 'o1', email: 'o@o.com', role: 'admin' }, { expiresIn: '7d' });
             const res = await app.inject({
                 method: 'POST',
                 url: '/events',
@@ -194,14 +196,15 @@ describe('App integration', () => {
         });
 
         it('POST /reservations returns 200 and seats with valid token (happy path)', async () => {
+            const seatId = '550e8400-e29b-41d4-a716-446655440001';
             vi.mocked(mockReservationService.lockSeatsForReservation).mockResolvedValue([
-                { seatId: 's1', reservationId: 'r1', expiresAt: new Date() },
+                { seatId, reservationId: 'r1', expiresAt: new Date() },
             ]);
             const token = app.jwt.sign({ userId: 'u1', email: 'u@u.com' }, { expiresIn: '7d' });
             const res = await app.inject({
                 method: 'POST',
                 url: '/reservations',
-                payload: { seatIds: ['s1'] },
+                payload: { seatIds: [seatId] },
                 headers: { authorization: `Bearer ${token}` },
             });
             expect(res.statusCode).toBe(200);
@@ -209,6 +212,7 @@ describe('App integration', () => {
         });
 
         it('POST /reservations returns 409 on conflict', async () => {
+            const seatId = '550e8400-e29b-41d4-a716-446655440001';
             vi.mocked(mockReservationService.lockSeatsForReservation).mockRejectedValue(
                 new ReservationConflictError()
             );
@@ -216,7 +220,7 @@ describe('App integration', () => {
             const res = await app.inject({
                 method: 'POST',
                 url: '/reservations',
-                payload: { seatIds: ['s1'] },
+                payload: { seatIds: [seatId] },
                 headers: { authorization: `Bearer ${token}` },
             });
             expect(res.statusCode).toBe(409);

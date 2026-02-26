@@ -2,7 +2,7 @@
 
 Replace `http://localhost:3001` if your API runs elsewhere. After login, set `TOKEN` and use it for protected routes.
 
-**Setup:** Ensure the DB has schema applied: run `npm run migrate` (or run migrations in Docker before using reservations/orders).
+**Setup:** Run `npm run migrate`. Then run `npm run seed:admin` (set `ADMIN_EMAIL` and `ADMIN_PASSWORD`) to create/promote an admin. Only admins can create events. Run `npm run seed:seats` with optional `SEED_EVENT_ID` to create seats for an event.
 
 ---
 
@@ -62,10 +62,12 @@ curl -s http://localhost:3001/events/EVENT_ID | jq
 # Replace EVENT_ID with a real id from GET /events
 ```
 
-### Create event (requires auth)
+### Create event (admin only)
+
+Only users with role `admin` can create events. Seed an admin with `ADMIN_EMAIL` and `ADMIN_PASSWORD` then `npm run seed:admin`; log in with that account to get a token.
 
 ```bash
-# Use TOKEN from login
+# Use TOKEN from admin login
 curl -s -X POST http://localhost:3001/events \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \

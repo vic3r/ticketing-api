@@ -6,8 +6,8 @@ import type { IUserRepository } from '../interfaces/user.repository.interface.js
 
 export { EmailAlreadyRegisteredError, InvalidEmailOrPasswordError };
 
-function toUserResponse(user: { id: string; email: string; name: string }): UserResponse {
-    return { id: user.id, email: user.email, name: user.name };
+function toUserResponse(user: { id: string; email: string; name: string; role: string }): UserResponse {
+    return { id: user.id, email: user.email, name: user.name, role: user.role as UserResponse['role'] };
 }
 
 export function createAuthService(userRepository: IUserRepository): IAuthService {

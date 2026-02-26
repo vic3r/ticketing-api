@@ -24,6 +24,7 @@ describe('AuthService', () => {
             email: 'test@example.com',
             name: 'Test',
             passwordHash: 'hashed',
+            role: 'user',
             createdAt: new Date(),
             updatedAt: new Date(),
         });
@@ -41,7 +42,7 @@ describe('AuthService', () => {
                 password: 'secret',
                 name: 'New User',
             });
-            expect(result).toEqual({ id: 'user-1', email: 'test@example.com', name: 'Test' });
+            expect(result).toEqual({ id: 'user-1', email: 'test@example.com', name: 'Test', role: 'user' });
             expect(mockUserRepository.findByEmail).toHaveBeenCalledWith('new@example.com');
             expect(mockUserRepository.create).toHaveBeenCalledOnce();
         });
@@ -52,6 +53,7 @@ describe('AuthService', () => {
                 email: 'taken@example.com',
                 name: 'Existing',
                 passwordHash: 'hash',
+                role: 'user',
                 createdAt: new Date(),
                 updatedAt: new Date(),
             });
@@ -70,12 +72,13 @@ describe('AuthService', () => {
                 email: 'u@example.com',
                 name: 'User',
                 passwordHash: 'hashed',
+                role: 'user',
                 createdAt: new Date(),
                 updatedAt: new Date(),
             });
             const service = createAuthService(mockUserRepository);
             const result = await service.login({ email: 'u@example.com', password: 'correct' });
-            expect(result).toEqual({ id: 'u1', email: 'u@example.com', name: 'User' });
+            expect(result).toEqual({ id: 'u1', email: 'u@example.com', name: 'User', role: 'user' });
         });
 
         it('throws InvalidEmailOrPasswordError when user not found', async () => {
@@ -94,6 +97,7 @@ describe('AuthService', () => {
                 email: 'u@example.com',
                 name: 'User',
                 passwordHash: 'hashed',
+                role: 'user',
                 createdAt: new Date(),
                 updatedAt: new Date(),
             });

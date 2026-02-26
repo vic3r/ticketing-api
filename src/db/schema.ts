@@ -4,6 +4,7 @@ export const seatsStatusEnum = pgEnum('seats_status', ['available', 'sold', 'res
 export const orderStatusEnum = pgEnum('order_status', ['pending', 'paid', 'cancelled', 'refunded']);
 export const ticketTierEnum = pgEnum('ticket_tier', ['standard', 'premium', 'vip', 'early_access']);
 export const eventStatusEnum = pgEnum('event_status', ['draft', 'published', 'cancelled']);
+export const userRoleEnum = pgEnum('user_role', ['user', 'admin']);
 
 export const organizers = pgTable('organizers', {
     id: uuid('id').primaryKey().defaultRandom(),
@@ -77,6 +78,7 @@ export const users = pgTable('users', {
     name: text('name').notNull(),
     email: text('email').notNull().unique(),
     passwordHash: text('password_hash').notNull(),
+    role: userRoleEnum('role').notNull().default('user'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
