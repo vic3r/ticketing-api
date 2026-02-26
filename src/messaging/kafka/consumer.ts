@@ -72,7 +72,8 @@ export async function startPaymentSucceededConsumer(
     await consumer.connect();
     await consumer.subscribe({ topic: TOPIC_PAYMENT_SUCCEEDED, fromBeginning: false });
 
-    await consumer.run({
+    // run() never resolves (runs until disconnect). Start it without awaiting so onReady can complete.
+    void consumer.run({
         eachMessage: async ({ message }) => {
             const raw = message.value?.toString();
             if (!raw) return;
