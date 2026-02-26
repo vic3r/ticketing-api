@@ -60,18 +60,31 @@ export const ticketTiers = pgTable('ticket_tiers', {
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
+/** Physical seats at a venue (layout only). Same seats reused for every event at that venue. */
 export const seats = pgTable('seats', {
     id: uuid('id').primaryKey().defaultRandom(),
-    eventId: uuid('event_id').references(() => events.id),
+    venueId: uuid('venue_id').references(() => venues.id).notNull(),
     ticketTierId: uuid('ticket_tier_id').references(() => ticketTiers.id),
     section: text('section').notNull(),
     row: text('row'),
     seatNumber: integer('seat_number'),
-    status: seatsStatusEnum('status').default('available'),
-    reservedUntil: timestamp('reserved_until'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
+
+/** Per-event availability for venue seats. One row per (event, seat) with status. */
+export const eventSeats = pgTable(
+    'event_seats',
+    {
+        eventId: uuid('event_id').references(() => events.id).notNull(),
+        seatId: uuid('seat_id').references(() => seats.id).notNull(),
+        status: seatsStatusEnum('status').notNull().default('available'),
+        reservedUntil: timestamp('reserved_until'),
+        createdAt: timestamp('created_at').notNull().defaultNow(),
+        updatedAt: timestamp('updated_at').notNull().defaultNow(),
+    },
+    (t) => [{ primaryKey: { columns: [t.eventId, t.seatId] } }]
+);
 
 export const users = pgTable('users', {
     id: uuid('id').primaryKey().defaultRandom(),

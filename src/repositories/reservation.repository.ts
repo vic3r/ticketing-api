@@ -1,5 +1,5 @@
 import { db } from '../db/index.js';
-import { seats } from '../db/schema.js';
+import { eventSeats, seats } from '../db/schema.js';
 import { and, eq, inArray } from 'drizzle-orm';
 import type { ReservedSeatResponse } from '../dto/reservation.dto.js';
 import { SeatStatus } from '../enums/seat-status.js';
@@ -14,14 +14,13 @@ function toReservedSeatResponse(seat: {
     section: string;
     row: string | null;
     seatNumber: number | null;
-    status: string | null;
 }): ReservedSeatResponse {
     return {
         id: seat.id,
         section: seat.section,
         row: seat.row,
         seatNumber: seat.seatNumber,
-        status: (seat.status as SeatStatus) ?? SeatStatus.Reserved,
+        status: SeatStatus.Reserved,
     };
 }
 
@@ -29,29 +28,40 @@ export function createReservationRepository(
     reservationQueue: IReservationQueue
 ): IReservationRepository {
     return {
-        async reserve(seatIds: string[]): Promise<void> {
-            for (const seatId of seatIds) {
-                await db
-                    .update(seats)
-                    .set({ status: SeatStatus.Available, reservedUntil: null })
-                    .where(eq(seats.id, seatId));
-            }
+        async reserve(eventId: string, seatIds: string[]): Promise<void> {
+            await db
+                .update(eventSeats)
+                .set({ status: SeatStatus.Available, reservedUntil: null })
+                .where(
+                    and(
+                        eq(eventSeats.eventId, eventId),
+                        inArray(eventSeats.seatId, seatIds)
+                    )
+                );
         },
         async lockSeatsForReservation(
             _userId: string,
+            eventId: string,
             seatIds: string[]
         ): Promise<ReservedSeatResponse[]> {
             const reservedSeats = await db.transaction(async (tx) => {
                 const locked = await tx
-                    .select()
-                    .from(seats)
+                    .select({
+                        id: seats.id,
+                        section: seats.section,
+                        row: seats.row,
+                        seatNumber: seats.seatNumber,
+                    })
+                    .from(eventSeats)
+                    .innerJoin(seats, eq(eventSeats.seatId, seats.id))
                     .where(
                         and(
-                            inArray(seats.id, seatIds),
-                            eq(seats.status, SeatStatus.Available)
+                            eq(eventSeats.eventId, eventId),
+                            inArray(eventSeats.seatId, seatIds),
+                            eq(eventSeats.status, SeatStatus.Available)
                         )
                     )
-                    .for('update', { skipLocked: true });
+                    .for('update', { skipLocked: true, of: eventSeats });
 
                 if (locked.length !== seatIds.length) {
                     throw new ReservationConflictError();
@@ -61,16 +71,21 @@ export function createReservationRepository(
                     Date.now() + RESERVATION_DURATION_MINUTES * 60 * 1000
                 );
                 await tx
-                    .update(seats)
+                    .update(eventSeats)
                     .set({ status: SeatStatus.Reserved, reservedUntil })
-                    .where(inArray(seats.id, seatIds));
+                    .where(
+                        and(
+                            eq(eventSeats.eventId, eventId),
+                            inArray(eventSeats.seatId, seatIds)
+                        )
+                    );
 
                 return locked.map(toReservedSeatResponse);
             });
 
             await reservationQueue.add(
                 'reservation',
-                { seatIds },
+                { eventId, seatIds },
                 { delay: RESERVATION_DURATION_MINUTES * 60 * 1000 }
             );
 

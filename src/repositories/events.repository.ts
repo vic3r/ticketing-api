@@ -1,5 +1,5 @@
 import { db } from '../db/index.js';
-import { events } from '../db/schema.js';
+import { eventSeats, events, seats } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { EventCreationFailedError } from '../errors/events.errors.js';
 import type { EventRecord, IEventsRepository } from '../interfaces/events.repository.interface.js';
@@ -29,6 +29,18 @@ export const eventsRepository: IEventsRepository = {
             })
             .returning();
         if (!record) throw new EventCreationFailedError();
+        if (record.venueId) {
+            const venueSeats = await db.select({ id: seats.id }).from(seats).where(eq(seats.venueId, record.venueId));
+            if (venueSeats.length > 0) {
+                await db.insert(eventSeats).values(
+                    venueSeats.map((s) => ({
+                        eventId: record.id,
+                        seatId: s.id,
+                        status: 'available' as const,
+                    }))
+                );
+            }
+        }
         return record;
     },
 };

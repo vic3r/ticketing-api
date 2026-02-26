@@ -6,14 +6,15 @@ export function createReservationService(
     reservationRepository: IReservationRepository
 ): IReservationService {
     return {
-        async reserve(seatIds: string[]): Promise<void> {
-            await reservationRepository.reserve(seatIds);
+        async reserve(eventId: string, seatIds: string[]): Promise<void> {
+            await reservationRepository.reserve(eventId, seatIds);
         },
         async lockSeatsForReservation(
             userId: string,
+            eventId: string,
             seatIds: string[]
         ): Promise<ReservedSeatResponse[]> {
-            return reservationRepository.lockSeatsForReservation(userId, seatIds);
+            return reservationRepository.lockSeatsForReservation(userId, eventId, seatIds);
         },
     };
 }

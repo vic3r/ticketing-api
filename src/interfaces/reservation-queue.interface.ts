@@ -5,7 +5,7 @@
 export interface IReservationQueue {
     add(
         name: string,
-        data: { seatIds: string[] },
+        data: { eventId: string; seatIds: string[] },
         opts: { delay: number }
     ): Promise<unknown>;
 }

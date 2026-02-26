@@ -1,8 +1,8 @@
 import jwt from 'jsonwebtoken';
 import Stripe from 'stripe';
 import { db } from '../db/index.js';
-import { orders, seats, ticketTiers, tickets } from '../db/schema.js';
-import { eq, inArray } from 'drizzle-orm';
+import { eventSeats, orders, seats, ticketTiers, tickets } from '../db/schema.js';
+import { and, eq, inArray } from 'drizzle-orm';
 import { OrderStatus } from '../enums/order-status.js';
 import { SeatStatus } from '../enums/seat-status.js';
 import { StripeWebhookEventType } from '../enums/stripe-webhook-event.js';
@@ -91,10 +91,45 @@ async function findOrderByPaymentIntentId(paymentIntentId: string) {
     });
 }
 
-// --- Single-responsibility: seat update (webhook) ---
+// --- Single-responsibility: event_seats (availability + webhook) ---
 
-async function markSeatsSoldByIds(seatIds: string[]) {
-    await db.update(seats).set({ status: SeatStatus.Sold }).where(inArray(seats.id, seatIds));
+async function ensureSeatsAvailableForEvent(eventId: string, seatIds: string[]): Promise<void> {
+    const rows = await db
+        .select({ seatId: eventSeats.seatId })
+        .from(eventSeats)
+        .where(
+            and(
+                eq(eventSeats.eventId, eventId),
+                inArray(eventSeats.seatId, seatIds)
+            )
+        );
+    const foundIds = new Set(rows.map((r) => r.seatId));
+    const missing = seatIds.filter((id) => !foundIds.has(id));
+    if (missing.length > 0) throw new SeatsNotFoundError();
+    // Optionally check status is not 'sold' - allow reserved/available for checkout
+    const sold = await db
+        .select()
+        .from(eventSeats)
+        .where(
+            and(
+                eq(eventSeats.eventId, eventId),
+                inArray(eventSeats.seatId, seatIds),
+                eq(eventSeats.status, SeatStatus.Sold)
+            )
+        );
+    if (sold.length > 0) throw new SeatsNotFoundError();
+}
+
+async function markEventSeatsSold(eventId: string, seatIds: string[]) {
+    await db
+        .update(eventSeats)
+        .set({ status: SeatStatus.Sold, reservedUntil: null })
+        .where(
+            and(
+                eq(eventSeats.eventId, eventId),
+                inArray(eventSeats.seatId, seatIds)
+            )
+        );
 }
 
 // --- Single-responsibility: ticket insert ---
@@ -127,6 +162,7 @@ export const createOrdersRepository = (): IOrdersRepository => {
         async create(input: OrderRequest): Promise<CreateOrderResponse> {
             const { eventId, userId, seatIds, email } = input;
 
+            await ensureSeatsAvailableForEvent(eventId, seatIds);
             const selectedSeats = await findSeatsByIds(seatIds);
             if (selectedSeats.length !== seatIds.length) {
                 throw new SeatsNotFoundError();
@@ -181,7 +217,7 @@ export const createOrdersRepository = (): IOrdersRepository => {
             }
 
             await markOrderPaidByPaymentIntentId(intent.id);
-            await markSeatsSoldByIds(seatIds);
+            await markEventSeatsSold(eventId, seatIds);
 
             const order = await findOrderByPaymentIntentId(intent.id);
             if (!order) {

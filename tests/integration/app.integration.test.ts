@@ -179,9 +179,20 @@ describe('App integration', () => {
             const res = await app.inject({
                 method: 'POST',
                 url: '/reservations',
-                payload: { seatIds: ['s1'] },
+                payload: { eventId: 'e1', seatIds: ['550e8400-e29b-41d4-a716-446655440001'] },
             });
             expect(res.statusCode).toBe(401);
+        });
+
+        it('POST /reservations returns 400 when eventId missing', async () => {
+            const token = app.jwt.sign({ userId: 'u1', email: 'u@u.com' }, { expiresIn: '7d' });
+            const res = await app.inject({
+                method: 'POST',
+                url: '/reservations',
+                payload: { seatIds: ['550e8400-e29b-41d4-a716-446655440001'] },
+                headers: { authorization: `Bearer ${token}` },
+            });
+            expect(res.statusCode).toBe(400);
         });
 
         it('POST /reservations returns 400 when seatIds invalid', async () => {
@@ -189,22 +200,23 @@ describe('App integration', () => {
             const res = await app.inject({
                 method: 'POST',
                 url: '/reservations',
-                payload: {},
+                payload: { eventId: '550e8400-e29b-41d4-a716-446655440000' },
                 headers: { authorization: `Bearer ${token}` },
             });
             expect(res.statusCode).toBe(400);
         });
 
         it('POST /reservations returns 200 and seats with valid token (happy path)', async () => {
+            const eventId = '550e8400-e29b-41d4-a716-446655440000';
             const seatId = '550e8400-e29b-41d4-a716-446655440001';
             vi.mocked(mockReservationService.lockSeatsForReservation).mockResolvedValue([
-                { seatId, reservationId: 'r1', expiresAt: new Date() },
+                { id: seatId, section: 'A', row: '1', seatNumber: 1, status: 'reserved' },
             ]);
             const token = app.jwt.sign({ userId: 'u1', email: 'u@u.com' }, { expiresIn: '7d' });
             const res = await app.inject({
                 method: 'POST',
                 url: '/reservations',
-                payload: { seatIds: [seatId] },
+                payload: { eventId, seatIds: [seatId] },
                 headers: { authorization: `Bearer ${token}` },
             });
             expect(res.statusCode).toBe(200);
@@ -212,6 +224,7 @@ describe('App integration', () => {
         });
 
         it('POST /reservations returns 409 on conflict', async () => {
+            const eventId = '550e8400-e29b-41d4-a716-446655440000';
             const seatId = '550e8400-e29b-41d4-a716-446655440001';
             vi.mocked(mockReservationService.lockSeatsForReservation).mockRejectedValue(
                 new ReservationConflictError()
@@ -220,7 +233,7 @@ describe('App integration', () => {
             const res = await app.inject({
                 method: 'POST',
                 url: '/reservations',
-                payload: { seatIds: [seatId] },
+                payload: { eventId, seatIds: [seatId] },
                 headers: { authorization: `Bearer ${token}` },
             });
             expect(res.statusCode).toBe(409);

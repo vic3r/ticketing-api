@@ -7,8 +7,8 @@ import { SeatStatus } from '../../../src/enums/seat-status.js';
 const RESERVATION_DURATION_MS = 10 * 60 * 1000;
 
 const mockLockedSeats = [
-    { id: 's1', section: 'A', row: '1', seatNumber: 1, status: SeatStatus.Available },
-    { id: 's2', section: 'A', row: '1', seatNumber: 2, status: SeatStatus.Available },
+    { id: 's1', section: 'A', row: '1', seatNumber: 1 },
+    { id: 's2', section: 'A', row: '1', seatNumber: 2 },
 ];
 
 vi.mock('../../../src/db/index.js', () => ({
@@ -43,14 +43,18 @@ describe('Reservation repository', () => {
         vi.clearAllMocks();
     });
 
+    const eventId = 'ev-1';
+
     describe('lockSeatsForReservation', () => {
         it('returns reserved seats and adds job to queue when all seats locked (happy path)', async () => {
             db.transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
                 const mockTx = {
                     select: vi.fn().mockReturnValue({
                         from: vi.fn().mockReturnValue({
-                            where: vi.fn().mockReturnValue({
-                                for: vi.fn().mockResolvedValue(mockLockedSeats),
+                            innerJoin: vi.fn().mockReturnValue({
+                                where: vi.fn().mockReturnValue({
+                                    for: vi.fn().mockResolvedValue(mockLockedSeats),
+                                }),
                             }),
                         }),
                     }),
@@ -63,13 +67,13 @@ describe('Reservation repository', () => {
                 return fn(mockTx);
             });
 
-            const result = await repo.lockSeatsForReservation('user-1', ['s1', 's2']);
+            const result = await repo.lockSeatsForReservation('user-1', eventId, ['s1', 's2']);
 
             expect(result).toHaveLength(2);
             expect(result[0]).toMatchObject({ id: 's1', section: 'A', row: '1', seatNumber: 1 });
             expect(mockQueue.add).toHaveBeenCalledWith(
                 'reservation',
-                { seatIds: ['s1', 's2'] },
+                { eventId, seatIds: ['s1', 's2'] },
                 { delay: RESERVATION_DURATION_MS }
             );
         });
@@ -79,8 +83,10 @@ describe('Reservation repository', () => {
                 const mockTx = {
                     select: vi.fn().mockReturnValue({
                         from: vi.fn().mockReturnValue({
-                            where: vi.fn().mockReturnValue({
-                                for: vi.fn().mockResolvedValue([mockLockedSeats[0]]), // only one seat
+                            innerJoin: vi.fn().mockReturnValue({
+                                where: vi.fn().mockReturnValue({
+                                    for: vi.fn().mockResolvedValue([mockLockedSeats[0]]),
+                                }),
                             }),
                         }),
                     }),
@@ -91,7 +97,7 @@ describe('Reservation repository', () => {
                 return fn(mockTx);
             });
 
-            await expect(repo.lockSeatsForReservation('user-1', ['s1', 's2'])).rejects.toThrow(
+            await expect(repo.lockSeatsForReservation('user-1', eventId, ['s1', 's2'])).rejects.toThrow(
                 ReservationConflictError
             );
             expect(mockQueue.add).not.toHaveBeenCalled();
@@ -100,19 +106,19 @@ describe('Reservation repository', () => {
         it('does not call queue.add when transaction throws', async () => {
             db.transaction.mockRejectedValue(new Error('DB error'));
 
-            await expect(repo.lockSeatsForReservation('user-1', ['s1'])).rejects.toThrow('DB error');
+            await expect(repo.lockSeatsForReservation('user-1', eventId, ['s1'])).rejects.toThrow('DB error');
             expect(mockQueue.add).not.toHaveBeenCalled();
         });
     });
 
     describe('reserve', () => {
-        it('calls db.update for each seatId', async () => {
+        it('calls db.update with eventId and seatIds', async () => {
             const dbModule = await import('../../../src/db/index.js');
             const dbUpdate = dbModule.db.update as ReturnType<typeof vi.fn>;
 
-            await repo.reserve(['s1', 's2']);
+            await repo.reserve(eventId, ['s1', 's2']);
 
-            expect(dbUpdate).toHaveBeenCalledTimes(2);
+            expect(dbUpdate).toHaveBeenCalledTimes(1);
         });
     });
 });

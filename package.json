@@ -10,6 +10,7 @@
     "migrate": "tsx scripts/migrate.ts",
     "seed:seats": "tsx scripts/seed-seats.ts",
     "seed:admin": "tsx scripts/seed-admin.ts",
+    "seed:venue": "tsx scripts/seed-venue.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"

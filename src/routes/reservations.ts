@@ -21,8 +21,16 @@ function areValidUuids(ids: string[]): boolean {
 export async function reservationsRoutes(app: FastifyInstance, opts: ReservationsRoutesOptions) {
     const { reservationService } = opts;
     app.post('/reservations', { preHandler: authenticate }, async (request, reply) => {
-        const body = request.body as { seatIds?: unknown };
+        const body = request.body as { eventId?: unknown; seatIds?: unknown };
+        const eventId = body?.eventId;
         const seatIds = body?.seatIds;
+        if (typeof eventId !== 'string' || !eventId) {
+            request.log.warn('reservation rejected: eventId required');
+            return reply.status(400).send({ message: 'eventId is required' });
+        }
+        if (!areValidUuids([eventId])) {
+            return reply.status(400).send({ message: 'eventId must be a valid UUID' });
+        }
         if (!seatIds || !isStringArray(seatIds) || seatIds.length === 0) {
             request.log.warn('reservation rejected: invalid seatIds');
             return reply.status(400).send({ message: 'Seat IDs are required and must be a non-empty array of strings' });
@@ -38,10 +46,11 @@ export async function reservationsRoutes(app: FastifyInstance, opts: Reservation
         try {
             const seats = await runWithSpan('reservations.lockSeats', (span) => {
                 span.setAttribute('reservation.userId', user.userId);
+                span.setAttribute('reservation.eventId', eventId);
                 span.setAttribute('reservation.seatCount', seatIds.length);
-                return reservationService.lockSeatsForReservation(user.userId, seatIds);
+                return reservationService.lockSeatsForReservation(user.userId, eventId, seatIds);
             });
-            request.log.info({ userId: user.userId, seatIds, count: seats.length }, 'seats reserved');
+            request.log.info({ userId: user.userId, eventId, seatIds, count: seats.length }, 'seats reserved');
             return reply.status(200).send({ seats });
         } catch (error) {
             if (error instanceof ReservationConflictError) {

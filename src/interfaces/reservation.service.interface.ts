@@ -1,6 +1,6 @@
 import type { ReservedSeatResponse } from '../dto/reservation.dto.js';
 
 export interface IReservationService {
-    reserve(seatIds: string[]): Promise<void>;
-    lockSeatsForReservation(userId: string, seatIds: string[]): Promise<ReservedSeatResponse[]>;
+    reserve(eventId: string, seatIds: string[]): Promise<void>;
+    lockSeatsForReservation(userId: string, eventId: string, seatIds: string[]): Promise<ReservedSeatResponse[]>;
 }

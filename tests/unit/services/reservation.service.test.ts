@@ -15,10 +15,10 @@ describe('ReservationService', () => {
     });
 
     describe('reserve', () => {
-        it('calls repository.reserve with seat ids (happy path)', async () => {
+        it('calls repository.reserve with eventId and seat ids (happy path)', async () => {
             const service = createReservationService(mockReservationRepository);
-            await service.reserve(['s1', 's2']);
-            expect(mockReservationRepository.reserve).toHaveBeenCalledWith(['s1', 's2']);
+            await service.reserve('ev-1', ['s1', 's2']);
+            expect(mockReservationRepository.reserve).toHaveBeenCalledWith('ev-1', ['s1', 's2']);
         });
     });
 
@@ -30,10 +30,10 @@ describe('ReservationService', () => {
             ];
             vi.mocked(mockReservationRepository.lockSeatsForReservation).mockResolvedValue(seats);
             const service = createReservationService(mockReservationRepository);
-            const result = await service.lockSeatsForReservation('user-1', ['s1', 's2']);
+            const result = await service.lockSeatsForReservation('user-1', 'ev-1', ['s1', 's2']);
             expect(result).toHaveLength(2);
             expect(result[0]?.id).toBe('s1');
-            expect(mockReservationRepository.lockSeatsForReservation).toHaveBeenCalledWith('user-1', ['s1', 's2']);
+            expect(mockReservationRepository.lockSeatsForReservation).toHaveBeenCalledWith('user-1', 'ev-1', ['s1', 's2']);
         });
 
         it('propagates ReservationConflictError when seats not available', async () => {
@@ -42,7 +42,7 @@ describe('ReservationService', () => {
             );
             const service = createReservationService(mockReservationRepository);
             await expect(
-                service.lockSeatsForReservation('user-1', ['s1'])
+                service.lockSeatsForReservation('user-1', 'ev-1', ['s1'])
             ).rejects.toThrow(ReservationConflictError);
         });
     });

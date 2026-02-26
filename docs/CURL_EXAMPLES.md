@@ -2,7 +2,7 @@
 
 Replace `http://localhost:3001` if your API runs elsewhere. After login, set `TOKEN` and use it for protected routes.
 
-**Setup:** Run `npm run migrate`. Then run `npm run seed:admin` (set `ADMIN_EMAIL` and `ADMIN_PASSWORD`) to create/promote an admin. Only admins can create events. Run `npm run seed:seats` with optional `SEED_EVENT_ID` to create seats for an event.
+**Setup:** Run `npm run migrate`, then `npm run seed:admin` (set `ADMIN_EMAIL`, `ADMIN_PASSWORD`). Create a venue with `npm run seed:venue`, then `SEED_VENUE_ID=<id> npm run seed:seats`. Only admins can create events; creating an event with a `venueId` auto-populates event_seats from that venue’s seats.
 
 ---
 
@@ -87,16 +87,16 @@ curl -s -X POST http://localhost:3001/events \
 
 ## Reservations (requires auth)
 
-Seat IDs must be **valid UUIDs** of existing seats (e.g. from your `seats` table). Run migrations first: `npm run migrate`.
+Seats belong to **venues**; each **event** at a venue gets its own availability rows (`event_seats`). Reserve with **eventId** (the event) and **seatIds** (venue seat UUIDs that exist in that event).
 
 ```bash
-# Reserve seats (replace with real seat UUIDs from your DB)
+# Reserve seats for an event (use real event ID and seat IDs from the event’s venue)
 curl -s -X POST http://localhost:3001/reservations \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
-  -d '{"seatIds":["550e8400-e29b-41d4-a716-446655440001","550e8400-e29b-41d4-a716-446655440002"]}' | jq
+  -d '{"eventId":"<EVENT_UUID>","seatIds":["550e8400-e29b-41d4-a716-446655440001","550e8400-e29b-41d4-a716-446655440002"]}' | jq
 # 200: { "seats": [...] }
-# 400: "Each seat ID must be a valid UUID" if format is wrong
+# 400: "eventId is required" or "Each seat ID must be a valid UUID"
 # 409: seats not available
 ```
 
