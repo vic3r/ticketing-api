@@ -1,10 +1,10 @@
 # Prometheus scrape config for Jaeger SPM.
 # Jaeger's spanmetrics connector exposes RED metrics on port 8889.
 global:
-  scrape_interval: 15s
-  evaluation_interval: 15s
+    scrape_interval: 15s
+    evaluation_interval: 15s
 
 scrape_configs:
-  - job_name: jaeger-spanmetrics
-    static_configs:
-      - targets: ['jaeger:8889']
+    - job_name: jaeger-spanmetrics
+      static_configs:
+          - targets: ['jaeger:8889']
