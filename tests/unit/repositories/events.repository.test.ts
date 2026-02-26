@@ -5,6 +5,7 @@ import { EventCreationFailedError } from '../../../src/errors/events.errors.js';
 const mocks = vi.hoisted(() => ({
     mockWhere: vi.fn(),
     mockFrom: vi.fn(),
+    mockInnerJoin: vi.fn(),
     mockSelect: vi.fn(),
     mockReturning: vi.fn(),
     mockValues: vi.fn(),
@@ -15,9 +16,14 @@ vi.mock('../../../src/db/index.js', () => ({
     db: {
         select: () => mocks.mockSelect(),
         insert: () => ({
-            values: (v: unknown) => ({
-                returning: () => mocks.mockReturning(),
-            }),
+            values: (v: unknown) => {
+                const noReturn = Promise.resolve(undefined);
+                return {
+                    returning: () => mocks.mockReturning(),
+                    then: noReturn.then.bind(noReturn),
+                    catch: noReturn.catch.bind(noReturn),
+                };
+            },
         }),
     },
 }));
@@ -145,7 +151,7 @@ describe('Events repository', () => {
             mocks.mockReturning.mockResolvedValueOnce([created]);
 
             const result = await eventsRepository.create({
-                venueId: null,
+                venueId: '',
                 organizerId: 'o1',
                 name: 'New',
                 description: null,
@@ -155,6 +161,87 @@ describe('Events repository', () => {
             });
 
             expect(result).toEqual(created);
+        });
+
+        it('inserts eventSeats when record has venueId and venue has seats', async () => {
+            const created = {
+                id: 'ev-1',
+                organizerId: 'o1',
+                venueId: 'v1',
+                name: 'New',
+                description: null,
+                imageUrl: null,
+                startDate: new Date(),
+                endDate: new Date(),
+                status: 'draft',
+                isPublished: true,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            };
+            mocks.mockReturning.mockResolvedValueOnce([created]);
+            mocks.mockWhere.mockResolvedValueOnce([{ id: 'seat-1' }, { id: 'seat-2' }]);
+
+            const result = await eventsRepository.create({
+                venueId: 'v1',
+                organizerId: 'o1',
+                name: 'New',
+                description: null,
+                imageUrl: null,
+                startDate: new Date(),
+                endDate: new Date(),
+                isPublished: true,
+            });
+
+            expect(result).toEqual(created);
+            expect(mocks.mockWhere).toHaveBeenCalled();
+        });
+    });
+
+    describe('findSeatsByEventId', () => {
+        it('returns seats for event', async () => {
+            const rows = [
+                { id: 's1', section: 'A', row: '1', seatNumber: 1, status: 'available' },
+                { id: 's2', section: 'A', row: '1', seatNumber: 2, status: 'reserved' },
+            ];
+            mocks.mockFrom.mockReturnValueOnce({
+                innerJoin: mocks.mockInnerJoin,
+            });
+            mocks.mockInnerJoin.mockReturnValueOnce({
+                where: mocks.mockWhere,
+            });
+            mocks.mockWhere.mockResolvedValueOnce(rows);
+
+            const result = await eventsRepository.findSeatsByEventId('ev-1');
+
+            expect(result).toHaveLength(2);
+            expect(result[0]).toEqual({
+                id: 's1',
+                section: 'A',
+                row: '1',
+                seatNumber: 1,
+                status: 'available',
+            });
+            expect(result[1]).toEqual({
+                id: 's2',
+                section: 'A',
+                row: '1',
+                seatNumber: 2,
+                status: 'reserved',
+            });
+        });
+
+        it('returns empty array when event has no seats', async () => {
+            mocks.mockFrom.mockReturnValueOnce({
+                innerJoin: mocks.mockInnerJoin,
+            });
+            mocks.mockInnerJoin.mockReturnValueOnce({
+                where: mocks.mockWhere,
+            });
+            mocks.mockWhere.mockResolvedValueOnce([]);
+
+            const result = await eventsRepository.findSeatsByEventId('ev-empty');
+
+            expect(result).toEqual([]);
         });
     });
 });

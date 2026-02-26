@@ -6,11 +6,17 @@ const mocks = vi.hoisted(() => ({
     mockReturning: vi.fn(),
 }));
 
+const insertThenable = {
+    then: (r: (v: unknown) => void) => Promise.resolve(undefined).then(r),
+    catch: (e: (err: unknown) => void) => Promise.resolve(undefined).catch(e),
+};
+
 vi.mock('../../../src/db/index.js', () => ({
     db: {
         insert: () => ({
-            values: () => ({
+            values: (v: unknown) => ({
                 returning: () => mocks.mockReturning(),
+                ...insertThenable,
             }),
         }),
     },
@@ -18,6 +24,7 @@ vi.mock('../../../src/db/index.js', () => ({
 
 vi.mock('../../../src/db/schema.js', () => ({
     venues: {},
+    seats: {},
 }));
 
 describe('Venues repository', () => {
@@ -98,5 +105,27 @@ describe('Venues repository', () => {
                 country: 'CO',
             })
         ).rejects.toThrow(VenueCreationFailedError);
+    });
+
+    describe('addSeats', () => {
+        it('returns 0 when seats array is empty', async () => {
+            const result = await venuesRepository.addSeats('v1', []);
+            expect(result).toBe(0);
+        });
+
+        it('returns count and inserts seats', async () => {
+            const seats = [
+                { section: 'A', row: '1', seatNumber: 1 },
+                { section: 'A', row: '1', seatNumber: 2 },
+            ];
+            const result = await venuesRepository.addSeats('v1', seats);
+            expect(result).toBe(2);
+        });
+
+        it('passes optional row and seatNumber as null when omitted', async () => {
+            const seats = [{ section: 'Floor' }];
+            const result = await venuesRepository.addSeats('v1', seats);
+            expect(result).toBe(1);
+        });
     });
 });

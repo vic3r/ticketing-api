@@ -13,6 +13,7 @@ describe('Events routes', () => {
             findAllPublished: vi.fn(),
             findById: vi.fn(),
             create: vi.fn(),
+            getSeatsForEvent: vi.fn(),
         };
         app = await buildApp({ eventsService: mockEventsService });
         await app.ready();
@@ -95,6 +96,112 @@ describe('Events routes', () => {
         it('returns 500 when findById throws non-Error', async () => {
             vi.mocked(mockEventsService.findById).mockRejectedValue('unknown');
             const res = await app.inject({ method: 'GET', url: '/events/e1' });
+            expect(res.statusCode).toBe(500);
+            expect(res.json()).toMatchObject({ message: 'An unknown error occurred' });
+        });
+    });
+
+    describe('GET /events/:id/seats', () => {
+        it('returns 200 and list of seats (happy path)', async () => {
+            const event = {
+                id: 'e1',
+                organizerId: 'o1',
+                venueId: 'v1',
+                name: 'Event',
+                description: null,
+                imageUrl: null,
+                startDate: new Date(),
+                endDate: new Date(),
+                status: EventStatus.Published,
+                isPublished: true,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            };
+            const seatsList = [
+                { id: 's1', section: 'A', row: '1', seatNumber: 1, status: 'available' },
+                { id: 's2', section: 'A', row: '1', seatNumber: 2, status: 'available' },
+            ];
+            vi.mocked(mockEventsService.findById).mockResolvedValue(event);
+            vi.mocked(mockEventsService.getSeatsForEvent).mockResolvedValue(seatsList);
+            const res = await app.inject({ method: 'GET', url: '/events/e1/seats' });
+            expect(res.statusCode).toBe(200);
+            const body = res.json();
+            expect(Array.isArray(body)).toBe(true);
+            expect(body).toHaveLength(2);
+            expect(body[0]).toMatchObject({ id: 's1', section: 'A', status: 'available' });
+            expect(mockEventsService.getSeatsForEvent).toHaveBeenCalledWith('e1');
+        });
+
+        it('returns 404 when event not found', async () => {
+            vi.mocked(mockEventsService.findById).mockResolvedValue(null as never);
+            const res = await app.inject({ method: 'GET', url: '/events/nonexistent/seats' });
+            expect(res.statusCode).toBe(404);
+            expect(res.json()).toMatchObject({ message: 'Event not found' });
+            expect(mockEventsService.getSeatsForEvent).not.toHaveBeenCalled();
+        });
+
+        it('returns 200 and empty array when event has no seats', async () => {
+            const event = {
+                id: 'e1',
+                organizerId: 'o1',
+                venueId: 'v1',
+                name: 'Event',
+                description: null,
+                imageUrl: null,
+                startDate: new Date(),
+                endDate: new Date(),
+                status: EventStatus.Published,
+                isPublished: true,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            };
+            vi.mocked(mockEventsService.findById).mockResolvedValue(event);
+            vi.mocked(mockEventsService.getSeatsForEvent).mockResolvedValue([]);
+            const res = await app.inject({ method: 'GET', url: '/events/e1/seats' });
+            expect(res.statusCode).toBe(200);
+            expect(res.json()).toEqual([]);
+        });
+
+        it('returns 500 when getSeatsForEvent throws Error', async () => {
+            const event = {
+                id: 'e1',
+                organizerId: 'o1',
+                venueId: 'v1',
+                name: 'Event',
+                description: null,
+                imageUrl: null,
+                startDate: new Date(),
+                endDate: new Date(),
+                status: EventStatus.Published,
+                isPublished: true,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            };
+            vi.mocked(mockEventsService.findById).mockResolvedValue(event);
+            vi.mocked(mockEventsService.getSeatsForEvent).mockRejectedValue(new Error('DB error'));
+            const res = await app.inject({ method: 'GET', url: '/events/e1/seats' });
+            expect(res.statusCode).toBe(500);
+            expect(res.json()).toMatchObject({ message: 'DB error' });
+        });
+
+        it('returns 500 when getSeatsForEvent throws non-Error', async () => {
+            const event = {
+                id: 'e1',
+                organizerId: 'o1',
+                venueId: 'v1',
+                name: 'Event',
+                description: null,
+                imageUrl: null,
+                startDate: new Date(),
+                endDate: new Date(),
+                status: EventStatus.Published,
+                isPublished: true,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            };
+            vi.mocked(mockEventsService.findById).mockResolvedValue(event);
+            vi.mocked(mockEventsService.getSeatsForEvent).mockRejectedValue('unknown');
+            const res = await app.inject({ method: 'GET', url: '/events/e1/seats' });
             expect(res.statusCode).toBe(500);
             expect(res.json()).toMatchObject({ message: 'An unknown error occurred' });
         });

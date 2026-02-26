@@ -153,6 +153,34 @@
                     }
                 },
                 {
+                    "name": "Add seats to venue (admin)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
+                                    "const json = pm.response.json();",
+                                    "pm.test('Returns count', function () { pm.expect(json).to.have.property('count'); });"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Content-Type", "value": "application/json" },
+                            { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"seats\": [\n    { \"section\": \"A\", \"row\": \"1\", \"seatNumber\": 1 },\n    { \"section\": \"A\", \"row\": \"1\", \"seatNumber\": 2 },\n    { \"section\": \"A\", \"row\": \"2\", \"seatNumber\": 1 }\n  ]\n}"
+                        },
+                        "url": "{{baseUrl}}/venues/{{venueId}}/seats"
+                    }
+                },
+                {
                     "name": "Create event (admin)",
                     "event": [
                         {
@@ -249,6 +277,26 @@
                         "method": "GET",
                         "header": [],
                         "url": "{{baseUrl}}/events/{{eventId}}"
+                    }
+                },
+                {
+                    "name": "Get event seats",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                                    "pm.test('Response is array', function () { pm.expect(pm.response.json()).to.be.an('array'); });"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": "{{baseUrl}}/events/{{eventId}}/seats"
                     }
                 },
                 {

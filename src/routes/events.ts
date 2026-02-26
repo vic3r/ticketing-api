@@ -40,6 +40,28 @@ export async function eventsRoutes(app: FastifyInstance, opts: EventsRoutesOptio
         }
     });
 
+    app.get('/events/:id/seats', async (request, reply) => {
+        const { id: eventId } = request.params as { id: string };
+        try {
+            const event = await eventsService.findById(eventId);
+            if (!event) {
+                request.log.warn({ eventId }, 'event not found');
+                return reply.status(404).send({ message: 'Event not found' });
+            }
+            const seatsList = await runWithSpan('events.getSeats', (span) => {
+                span.setAttribute('event.id', eventId);
+                return eventsService.getSeatsForEvent(eventId);
+            });
+            return reply.status(200).send(seatsList);
+        } catch (error) {
+            if (error instanceof Error) {
+                request.log.error({ err: error, eventId }, 'get event seats failed');
+                return reply.status(500).send({ message: error.message });
+            }
+            return reply.status(500).send({ message: 'An unknown error occurred' });
+        }
+    });
+
     app.post('/events', { preHandler: [authenticate, requireAdmin] }, async (request, reply) => {
         const body = request.body;
         try {

@@ -11,6 +11,7 @@ describe('EventsService', () => {
             findAllPublished: vi.fn(),
             findById: vi.fn(),
             create: vi.fn(),
+            findSeatsByEventId: vi.fn(),
         };
     });
 
@@ -101,6 +102,27 @@ describe('EventsService', () => {
             });
             expect(result.name).toBe('New Event');
             expect(mockEventsRepository.create).toHaveBeenCalledOnce();
+        });
+    });
+
+    describe('getSeatsForEvent', () => {
+        it('returns seats from repository', async () => {
+            const seatsList = [
+                { id: 's1', section: 'A', row: '1', seatNumber: 1, status: 'available' },
+                { id: 's2', section: 'A', row: '1', seatNumber: 2, status: 'available' },
+            ];
+            vi.mocked(mockEventsRepository.findSeatsByEventId).mockResolvedValue(seatsList);
+            const service = createEventsService(mockEventsRepository);
+            const result = await service.getSeatsForEvent('e1');
+            expect(result).toEqual(seatsList);
+            expect(mockEventsRepository.findSeatsByEventId).toHaveBeenCalledWith('e1');
+        });
+
+        it('returns empty array when event has no seats', async () => {
+            vi.mocked(mockEventsRepository.findSeatsByEventId).mockResolvedValue([]);
+            const service = createEventsService(mockEventsRepository);
+            const result = await service.getSeatsForEvent('e1');
+            expect(result).toEqual([]);
         });
     });
 

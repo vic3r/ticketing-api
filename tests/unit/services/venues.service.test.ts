@@ -8,6 +8,7 @@ describe('VenuesService', () => {
     beforeEach(() => {
         mockVenuesRepository = {
             create: vi.fn(),
+            addSeats: vi.fn(),
         };
     });
 
@@ -67,5 +68,33 @@ describe('VenuesService', () => {
         expect(result.createdAt).toBeInstanceOf(Date);
         expect(result.updatedAt).toBeInstanceOf(Date);
         expect(result.description).toBe('Big venue');
+    });
+
+    describe('addSeats', () => {
+        it('returns count from repository', async () => {
+            vi.mocked(mockVenuesRepository.addSeats).mockResolvedValue(3);
+            const service = createVenuesService(mockVenuesRepository);
+            const result = await service.addSeats('v1', {
+                seats: [
+                    { section: 'A', row: '1', seatNumber: 1 },
+                    { section: 'A', row: '1', seatNumber: 2 },
+                    { section: 'A', row: '2', seatNumber: 1 },
+                ],
+            });
+            expect(result).toEqual({ count: 3 });
+            expect(mockVenuesRepository.addSeats).toHaveBeenCalledWith('v1', [
+                { section: 'A', row: '1', seatNumber: 1 },
+                { section: 'A', row: '1', seatNumber: 2 },
+                { section: 'A', row: '2', seatNumber: 1 },
+            ]);
+        });
+
+        it('passes empty seats array and returns count 0', async () => {
+            vi.mocked(mockVenuesRepository.addSeats).mockResolvedValue(0);
+            const service = createVenuesService(mockVenuesRepository);
+            const result = await service.addSeats('v1', { seats: [] });
+            expect(result).toEqual({ count: 0 });
+            expect(mockVenuesRepository.addSeats).toHaveBeenCalledWith('v1', []);
+        });
     });
 });

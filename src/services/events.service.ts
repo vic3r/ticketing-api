@@ -2,7 +2,10 @@ import { EVENTS_LIST_KEY, eventByIdKey } from '../cache/events-cache.keys.js';
 import type { ICache } from '../cache/cache.interface.js';
 import { EventStatus, type EventStatusValue } from '../enums/event-status.js';
 import type { EventRequest, EventResponse } from '../dto/events.dto.js';
-import type { IEventsRepository } from '../interfaces/events.repository.interface.js';
+import type {
+    EventSeatInfo,
+    IEventsRepository,
+} from '../interfaces/events.repository.interface.js';
 import type { IEventsService } from '../interfaces/events.service.interface.js';
 
 function toDate(v: Date | string): Date {
@@ -71,6 +74,9 @@ export function createEventsService(
             const record = await eventsRepository.create(event);
             if (cache) await cache.del(EVENTS_LIST_KEY);
             return toEventResponse(record);
+        },
+        async getSeatsForEvent(eventId: string): Promise<EventSeatInfo[]> {
+            return eventsRepository.findSeatsByEventId(eventId);
         },
     };
 }

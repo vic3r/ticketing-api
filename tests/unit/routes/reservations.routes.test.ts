@@ -83,6 +83,21 @@ describe('Reservations routes', () => {
             expect(res.statusCode).toBe(401);
         });
 
+        it('returns 401 when token has no userId (branch coverage)', async () => {
+            const tokenNoUserId = app.jwt.sign(
+                { email: 'u@example.com', role: 'user' },
+                { expiresIn: '7d' }
+            );
+            const res = await app.inject({
+                method: 'POST',
+                url: '/reservations',
+                payload: { eventId: validEventId, seatIds: [validSeatId] },
+                headers: { authorization: `Bearer ${tokenNoUserId}` },
+            });
+            expect(res.statusCode).toBe(401);
+            expect(res.json()).toMatchObject({ message: 'Unauthorized' });
+        });
+
         it('returns 400 when seatIds missing', async () => {
             const res = await app.inject({
                 method: 'POST',

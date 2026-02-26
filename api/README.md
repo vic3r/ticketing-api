@@ -20,4 +20,6 @@ Use these files to call the Ticketing API without writing curl by hand.
 2. Open the collection → **Variables**: set `baseUrl` (e.g. `http://localhost:3001`) and, after login, `token` (your JWT).
 3. Run any request in the folders (Health, Auth, Events, Venues, Reservations, Orders).
 
-Admin-only endpoints (events create, venues create) need a JWT for a user with role `admin` (e.g. from `npm run seed:admin` and then login).
+Admin-only endpoints (events create, venues create, add seats) need a JWT for a user with role `admin` (e.g. from `npm run seed:admin` and then login).
+
+**Reservation flow:** Create venue → **Add seats to venue** (POST `/venues/:venueId/seats`) → Create event → **Get event seats** (GET `/events/:eventId/seats`) → POST `/reservations` with `eventId` and `seatIds` from the seats list. Reservations return 409 if the event has no seats or the requested seats are not available.

@@ -40,6 +40,19 @@ describe('Orders routes', () => {
             expect(res.json()).toMatchObject({ clientSecret: 'secret_xxx', orderId: 'order-1' });
         });
 
+        it('handles checkout when seatIds is missing (branch coverage)', async () => {
+            vi.mocked(mockOrdersService.checkOut).mockResolvedValue({
+                clientSecret: 'sec',
+                orderId: 'o1',
+            });
+            const res = await app.inject({
+                method: 'POST',
+                url: '/orders/checkout',
+                payload: { userId: 'u1', eventId: 'e1', email: 'u@example.com' },
+            });
+            expect(res.statusCode).toBe(200);
+        });
+
         it('returns 404 when SeatsNotFoundError', async () => {
             vi.mocked(mockOrdersService.checkOut).mockRejectedValue(new SeatsNotFoundError());
             const res = await app.inject({
@@ -137,6 +150,18 @@ describe('Orders routes', () => {
             });
             expect(res.statusCode).toBe(500);
             expect(res.json()).toMatchObject({ message: 'An unknown error occurred' });
+        });
+
+        it('uses request body when rawBody not set (branch coverage)', async () => {
+            vi.mocked(mockOrdersService.handleWebhook).mockResolvedValue({ received: true });
+            const res = await app.inject({
+                method: 'POST',
+                url: '/orders/webhook',
+                payload: { type: 'payment_intent.succeeded' },
+                headers: { 'stripe-signature': 'sig' },
+            });
+            expect(res.statusCode).toBe(200);
+            expect(res.json()).toEqual({ received: true });
         });
     });
 });

@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import type { VenueRequest } from '../dto/venues.dto.js';
+import type { AddSeatsRequest, VenueRequest } from '../dto/venues.dto.js';
 import { VenueCreationFailedError } from '../errors/venues.errors.js';
 import type { IVenuesService } from '../interfaces/venues.service.interface.js';
 import { authenticate } from '../plugins/authenticate.js';
@@ -12,6 +12,29 @@ interface VenuesRoutesOptions {
 
 export async function venuesRoutes(app: FastifyInstance, opts: VenuesRoutesOptions) {
     const { venuesService } = opts;
+
+    app.post(
+        '/venues/:venueId/seats',
+        { preHandler: [authenticate, requireAdmin] },
+        async (request, reply) => {
+            const { venueId } = request.params as { venueId: string };
+            const body = request.body as AddSeatsRequest;
+            try {
+                const result = await runWithSpan('venues.addSeats', (span) => {
+                    span.setAttribute('venue.id', venueId);
+                    return venuesService.addSeats(venueId, body);
+                });
+                request.log.info({ venueId, count: result.count }, 'seats added');
+                return reply.status(201).send(result);
+            } catch (error) {
+                if (error instanceof Error) {
+                    request.log.warn({ err: error, venueId }, 'add seats failed');
+                    return reply.status(400).send({ message: error.message });
+                }
+                return reply.status(500).send({ message: 'An unknown error occurred' });
+            }
+        }
+    );
 
     app.post('/venues', { preHandler: [authenticate, requireAdmin] }, async (request, reply) => {
         const body = request.body;

@@ -1,5 +1,6 @@
-import type { VenueRequest, VenueResponse } from '../dto/venues.dto.js';
+import type { AddSeatsRequest, VenueRequest, VenueResponse } from '../dto/venues.dto.js';
 
 export interface IVenuesService {
     create(input: VenueRequest): Promise<VenueResponse>;
+    addSeats(venueId: string, body: AddSeatsRequest): Promise<{ count: number }>;
 }

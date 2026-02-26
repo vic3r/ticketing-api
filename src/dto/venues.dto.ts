@@ -25,3 +25,13 @@ export interface VenueRequest {
     country: string;
     description?: string | null;
 }
+
+export interface SeatInput {
+    section: string;
+    row?: string;
+    seatNumber?: number;
+}
+
+export interface AddSeatsRequest {
+    seats: SeatInput[];
+}

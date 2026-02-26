@@ -2,7 +2,11 @@ import { db } from '../db/index.js';
 import { eventSeats, events, seats } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { EventCreationFailedError } from '../errors/events.errors.js';
-import type { EventRecord, IEventsRepository } from '../interfaces/events.repository.interface.js';
+import type {
+    EventRecord,
+    EventSeatInfo,
+    IEventsRepository,
+} from '../interfaces/events.repository.interface.js';
 import type { EventRequest } from '../dto/events.dto.js';
 
 export const eventsRepository: IEventsRepository = {
@@ -52,5 +56,25 @@ export const eventsRepository: IEventsRepository = {
             }
         }
         return record;
+    },
+    async findSeatsByEventId(eventId: string): Promise<EventSeatInfo[]> {
+        const rows = await db
+            .select({
+                id: seats.id,
+                section: seats.section,
+                row: seats.row,
+                seatNumber: seats.seatNumber,
+                status: eventSeats.status,
+            })
+            .from(eventSeats)
+            .innerJoin(seats, eq(eventSeats.seatId, seats.id))
+            .where(eq(eventSeats.eventId, eventId));
+        return rows.map((r) => ({
+            id: r.id,
+            section: r.section,
+            row: r.row,
+            seatNumber: r.seatNumber,
+            status: r.status,
+        }));
     },
 };

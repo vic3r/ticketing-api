@@ -1,4 +1,4 @@
-import type { VenueRequest, VenueResponse } from '../dto/venues.dto.js';
+import type { AddSeatsRequest, VenueRequest, VenueResponse } from '../dto/venues.dto.js';
 import type { IVenuesRepository } from '../interfaces/venues.repository.interface.js';
 import type { IVenuesService } from '../interfaces/venues.service.interface.js';
 
@@ -39,6 +39,11 @@ export function createVenuesService(venuesRepository: IVenuesRepository): IVenue
         async create(input: VenueRequest): Promise<VenueResponse> {
             const record = await venuesRepository.create(input);
             return toVenueResponse(record);
+        },
+        async addSeats(venueId: string, body: AddSeatsRequest): Promise<{ count: number }> {
+            const seats = body.seats ?? [];
+            const count = await venuesRepository.addSeats(venueId, seats);
+            return { count };
         },
     };
 }
