@@ -2,6 +2,8 @@
 
 Replace `http://localhost:3001` if your API runs elsewhere. After login, set `TOKEN` and use it for protected routes.
 
+**Setup:** Ensure the DB has schema applied: run `npm run migrate` (or run migrations in Docker before using reservations/orders).
+
 ---
 
 ## Health
@@ -83,13 +85,17 @@ curl -s -X POST http://localhost:3001/events \
 
 ## Reservations (requires auth)
 
+Seat IDs must be **valid UUIDs** of existing seats (e.g. from your `seats` table). Run migrations first: `npm run migrate`.
+
 ```bash
-# Reserve seats (use real seat ids for your event)
+# Reserve seats (replace with real seat UUIDs from your DB)
 curl -s -X POST http://localhost:3001/reservations \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
-  -d '{"seatIds":["seat-1","seat-2"]}' | jq
+  -d '{"seatIds":["550e8400-e29b-41d4-a716-446655440001","550e8400-e29b-41d4-a716-446655440002"]}' | jq
 # 200: { "seats": [...] }
+# 400: "Each seat ID must be a valid UUID" if format is wrong
+# 409: seats not available
 ```
 
 ---
