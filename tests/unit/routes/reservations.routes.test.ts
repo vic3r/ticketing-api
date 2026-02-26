@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../../../src/app.js';
 import type { IReservationService } from '../../../src/interfaces/reservation.service.interface.js';
 import { ReservationConflictError } from '../../../src/errors/reservation.errors.js';
+import { SeatStatus } from '../../../src/enums/seat-status.js';
 
 describe('Reservations routes', () => {
     let app: Awaited<ReturnType<typeof buildApp>>;
@@ -9,6 +10,7 @@ describe('Reservations routes', () => {
 
     beforeEach(async () => {
         mockReservationService = {
+            reserve: vi.fn(),
             lockSeatsForReservation: vi.fn(),
         };
         app = await buildApp({ reservationService: mockReservationService });
@@ -31,7 +33,13 @@ describe('Reservations routes', () => {
     describe('POST /reservations', () => {
         it('returns 200 and seats (happy path)', async () => {
             vi.mocked(mockReservationService.lockSeatsForReservation).mockResolvedValue([
-                { id: validSeatId, section: 'A', row: '1', seatNumber: 1, status: 'reserved' },
+                {
+                    id: validSeatId,
+                    section: 'A',
+                    row: '1',
+                    seatNumber: 1,
+                    status: SeatStatus.Reserved,
+                },
             ]);
             const res = await app.inject({
                 method: 'POST',
@@ -53,6 +61,17 @@ describe('Reservations routes', () => {
             });
             expect(res.statusCode).toBe(400);
             expect(res.json()).toMatchObject({ message: 'eventId is required' });
+        });
+
+        it('returns 400 when eventId is not a valid UUID', async () => {
+            const res = await app.inject({
+                method: 'POST',
+                url: '/reservations',
+                payload: { eventId: 'not-a-uuid', seatIds: [validSeatId] },
+                headers: { authorization: `Bearer ${validToken()}` },
+            });
+            expect(res.statusCode).toBe(400);
+            expect(res.json()).toMatchObject({ message: 'eventId must be a valid UUID' });
         });
 
         it('returns 401 when no auth header', async () => {
@@ -85,6 +104,17 @@ describe('Reservations routes', () => {
             expect(res.statusCode).toBe(400);
         });
 
+        it('returns 400 when seatIds contain invalid UUIDs', async () => {
+            const res = await app.inject({
+                method: 'POST',
+                url: '/reservations',
+                payload: { eventId: validEventId, seatIds: ['not-a-uuid', validSeatId] },
+                headers: { authorization: `Bearer ${validToken()}` },
+            });
+            expect(res.statusCode).toBe(400);
+            expect(res.json()).toMatchObject({ message: 'Each seat ID must be a valid UUID' });
+        });
+
         it('returns 409 when ReservationConflictError', async () => {
             vi.mocked(mockReservationService.lockSeatsForReservation).mockRejectedValue(
                 new ReservationConflictError('Seats already reserved')
@@ -110,6 +140,18 @@ describe('Reservations routes', () => {
                 headers: { authorization: `Bearer ${validToken()}` },
             });
             expect(res.statusCode).toBe(500);
+        });
+
+        it('returns 500 when service throws non-Error', async () => {
+            vi.mocked(mockReservationService.lockSeatsForReservation).mockRejectedValue(123);
+            const res = await app.inject({
+                method: 'POST',
+                url: '/reservations',
+                payload: { eventId: validEventId, seatIds: [validSeatId] },
+                headers: { authorization: `Bearer ${validToken()}` },
+            });
+            expect(res.statusCode).toBe(500);
+            expect(res.json()).toMatchObject({ message: 'An unknown error occurred' });
         });
     });
 });

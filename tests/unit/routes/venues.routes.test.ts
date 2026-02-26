@@ -99,5 +99,37 @@ describe('Venues routes', () => {
             });
             expect(res.statusCode).toBe(500);
         });
+
+        it('returns 400 when create throws generic Error', async () => {
+            vi.mocked(mockVenuesService.create).mockRejectedValue(new Error('Invalid address'));
+            const token = app.jwt.sign(
+                { userId: 'a1', email: 'admin@example.com', role: 'admin' },
+                { expiresIn: '7d' }
+            );
+            const res = await app.inject({
+                method: 'POST',
+                url: '/venues',
+                payload: venuePayload,
+                headers: { authorization: `Bearer ${token}` },
+            });
+            expect(res.statusCode).toBe(400);
+            expect(res.json()).toMatchObject({ message: 'Invalid address' });
+        });
+
+        it('returns 500 when create throws non-Error', async () => {
+            vi.mocked(mockVenuesService.create).mockRejectedValue('unknown');
+            const token = app.jwt.sign(
+                { userId: 'a1', email: 'admin@example.com', role: 'admin' },
+                { expiresIn: '7d' }
+            );
+            const res = await app.inject({
+                method: 'POST',
+                url: '/venues',
+                payload: venuePayload,
+                headers: { authorization: `Bearer ${token}` },
+            });
+            expect(res.statusCode).toBe(500);
+            expect(res.json()).toMatchObject({ message: 'An unknown error occurred' });
+        });
     });
 });

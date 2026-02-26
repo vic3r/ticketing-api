@@ -77,6 +77,17 @@ describe('Orders routes', () => {
             });
             expect(res.statusCode).toBe(400);
         });
+
+        it('returns 500 when service throws non-Error', async () => {
+            vi.mocked(mockOrdersService.checkOut).mockRejectedValue('unknown');
+            const res = await app.inject({
+                method: 'POST',
+                url: '/orders/checkout',
+                payload: { userId: 'u1', eventId: 'e1', seatIds: ['s1'], email: 'u@example.com' },
+            });
+            expect(res.statusCode).toBe(500);
+            expect(res.json()).toMatchObject({ message: 'An unknown error occurred' });
+        });
     });
 
     describe('POST /orders/webhook', () => {
@@ -114,6 +125,18 @@ describe('Orders routes', () => {
                 headers: { 'stripe-signature': 'sig' },
             });
             expect(res.statusCode).toBe(400);
+        });
+
+        it('returns 500 when service throws non-Error', async () => {
+            vi.mocked(mockOrdersService.handleWebhook).mockRejectedValue(null);
+            const res = await app.inject({
+                method: 'POST',
+                url: '/orders/webhook',
+                payload: {},
+                headers: { 'stripe-signature': 'sig' },
+            });
+            expect(res.statusCode).toBe(500);
+            expect(res.json()).toMatchObject({ message: 'An unknown error occurred' });
         });
     });
 });

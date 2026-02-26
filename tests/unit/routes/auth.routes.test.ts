@@ -72,6 +72,17 @@ describe('Auth routes', () => {
             expect(res.json()).toMatchObject({ message: 'DB error' });
         });
 
+        it('returns 500 when service throws non-Error', async () => {
+            vi.mocked(mockAuthService.register).mockRejectedValue('string throw');
+            const res = await app.inject({
+                method: 'POST',
+                url: '/auth/register',
+                payload: { email: 'a@b.com', password: 'p', name: 'N' },
+            });
+            expect(res.statusCode).toBe(500);
+            expect(res.json()).toMatchObject({ message: 'An unknown error occurred' });
+        });
+
         it('returns 400 for invalid body (validation)', async () => {
             const res = await app.inject({
                 method: 'POST',
@@ -110,6 +121,28 @@ describe('Auth routes', () => {
             });
             expect(res.statusCode).toBe(401);
             expect(res.json()).toMatchObject({ message: 'Invalid email or password' });
+        });
+
+        it('returns 500 when login throws generic Error', async () => {
+            vi.mocked(mockAuthService.login).mockRejectedValue(new Error('DB connection failed'));
+            const res = await app.inject({
+                method: 'POST',
+                url: '/auth/login',
+                payload: { email: 'u@example.com', password: 'p' },
+            });
+            expect(res.statusCode).toBe(500);
+            expect(res.json()).toMatchObject({ message: 'DB connection failed' });
+        });
+
+        it('returns 500 when login throws non-Error', async () => {
+            vi.mocked(mockAuthService.login).mockRejectedValue(123);
+            const res = await app.inject({
+                method: 'POST',
+                url: '/auth/login',
+                payload: { email: 'u@example.com', password: 'p' },
+            });
+            expect(res.statusCode).toBe(500);
+            expect(res.json()).toMatchObject({ message: 'An unknown error occurred' });
         });
 
         it('returns 400 for invalid body', async () => {

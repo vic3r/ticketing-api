@@ -84,6 +84,20 @@ describe('Events routes', () => {
             expect(res.statusCode).toBe(404);
             expect(res.json()).toMatchObject({ message: 'Event not found' });
         });
+
+        it('returns 500 when findById throws Error', async () => {
+            vi.mocked(mockEventsService.findById).mockRejectedValue(new Error('DB error'));
+            const res = await app.inject({ method: 'GET', url: '/events/e1' });
+            expect(res.statusCode).toBe(500);
+            expect(res.json()).toMatchObject({ message: 'DB error' });
+        });
+
+        it('returns 500 when findById throws non-Error', async () => {
+            vi.mocked(mockEventsService.findById).mockRejectedValue('unknown');
+            const res = await app.inject({ method: 'GET', url: '/events/e1' });
+            expect(res.statusCode).toBe(500);
+            expect(res.json()).toMatchObject({ message: 'An unknown error occurred' });
+        });
     });
 
     describe('POST /events', () => {
@@ -186,6 +200,54 @@ describe('Events routes', () => {
                 headers: { authorization: `Bearer ${token}` },
             });
             expect(res.statusCode).toBe(500);
+        });
+
+        it('returns 400 when create throws generic Error', async () => {
+            vi.mocked(mockEventsService.create).mockRejectedValue(new Error('Validation failed'));
+            const token = app.jwt.sign(
+                { userId: 'o1', email: 'o@o.com', role: 'admin' },
+                { expiresIn: '7d' }
+            );
+            const res = await app.inject({
+                method: 'POST',
+                url: '/events',
+                payload: {
+                    venueId: 'v1',
+                    organizerId: 'o1',
+                    name: 'New',
+                    description: null,
+                    imageUrl: null,
+                    startDate: new Date().toISOString(),
+                    endDate: new Date().toISOString(),
+                },
+                headers: { authorization: `Bearer ${token}` },
+            });
+            expect(res.statusCode).toBe(400);
+            expect(res.json()).toMatchObject({ message: 'Validation failed' });
+        });
+
+        it('returns 500 when create throws non-Error', async () => {
+            vi.mocked(mockEventsService.create).mockRejectedValue(null);
+            const token = app.jwt.sign(
+                { userId: 'o1', email: 'o@o.com', role: 'admin' },
+                { expiresIn: '7d' }
+            );
+            const res = await app.inject({
+                method: 'POST',
+                url: '/events',
+                payload: {
+                    venueId: 'v1',
+                    organizerId: 'o1',
+                    name: 'New',
+                    description: null,
+                    imageUrl: null,
+                    startDate: new Date().toISOString(),
+                    endDate: new Date().toISOString(),
+                },
+                headers: { authorization: `Bearer ${token}` },
+            });
+            expect(res.statusCode).toBe(500);
+            expect(res.json()).toMatchObject({ message: 'An unknown error occurred' });
         });
     });
 });
