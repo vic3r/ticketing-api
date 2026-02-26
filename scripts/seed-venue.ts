@@ -1,3 +1,4 @@
+/// <reference types="node" />
 /**
  * Seed a venue (and optionally an organizer). Run after migrate: npm run seed:venue
  * Set SEED_ORGANIZER_ID if you have one; otherwise organizer_id will be null.
