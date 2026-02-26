@@ -35,7 +35,7 @@ Run the entire stack (API, Postgres, Redis, Kafka, Jaeger, Traefik) in one comma
 
 2. **Set collection variables**
     - **Docker:** `baseUrl` = `http://localhost:3001` (default; API port is exposed).
-    - **Docker (via Traefik only):** If you remove the API port mapping, use `baseUrl` = `https://localhost` and turn off SSL certificate verification in Postman.
+    - **Docker (HTTPS via Traefik):** Use `baseUrl` = `https://localhost` and add the project’s `certs/server.crt` in Postman (see step 5 below) so you can keep SSL verification on.
     - **Local dev (no Docker):** Run `npm run dev` and use `baseUrl` = `http://localhost:3001`.
 
 3. **Get a JWT**
@@ -46,7 +46,14 @@ Run the entire stack (API, Postgres, Redis, Kafka, Jaeger, Traefik) in one comma
 4. **Call protected endpoints**
     - Use **Events → Create event (admin)**, **Venues → Create venue (admin)**, **Reservations → Reserve seats**, **Orders → Checkout**, etc. They use `Authorization: Bearer {{token}}` automatically.
 
-5. **Optional:** Turn off SSL certificate verification in Postman (Settings → General → SSL certificate verification) when using `https://localhost` with self-signed certs.
+5. **HTTPS with certificate verification (recommended for Traefik):** To use **https://localhost** with SSL verification **on** in Postman, trust the same cert Traefik uses:
+    - Generate certs if you haven’t: `./scripts/gen-certs.sh` (creates `certs/server.crt` and `certs/server.key`).
+    - In Postman: **Settings** (gear) → **Certificates** → **Add Certificate**.
+    - **Host:** `localhost`
+    - **CRT file:** select `certs/server.crt` from the project (or the full path to it).
+    - **Key file:** leave empty (only needed for client certs).
+    - Save, then set collection variable **baseUrl** = `https://localhost`.
+    - Keep **Settings → General → SSL certificate verification** **ON**. Postman will now verify the connection using your self-signed cert.
 
 ---
 
