@@ -1,7 +1,11 @@
 import { db } from '../db/index.js';
 import { users } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
-import type { IUserRepository, User, CreateUserInput } from '../interfaces/user.repository.interface.js';
+import type {
+    IUserRepository,
+    User,
+    CreateUserInput,
+} from '../interfaces/user.repository.interface.js';
 
 export type { User, CreateUserInput } from '../interfaces/user.repository.interface.js';
 

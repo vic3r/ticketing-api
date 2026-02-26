@@ -14,7 +14,11 @@ const isProd = env.NODE_ENV === 'production';
 export function getCorsOrigin(): string | boolean | string[] {
     const url = env.FRONTEND_URL;
     if (!url) return true;
-    if (url.includes(',')) return url.split(',').map((u) => u.trim()).filter(Boolean);
+    if (url.includes(','))
+        return url
+            .split(',')
+            .map((u) => u.trim())
+            .filter(Boolean);
     return url;
 }
 

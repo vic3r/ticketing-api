@@ -32,12 +32,7 @@ export function createReservationRepository(
             await db
                 .update(eventSeats)
                 .set({ status: SeatStatus.Available, reservedUntil: null })
-                .where(
-                    and(
-                        eq(eventSeats.eventId, eventId),
-                        inArray(eventSeats.seatId, seatIds)
-                    )
-                );
+                .where(and(eq(eventSeats.eventId, eventId), inArray(eventSeats.seatId, seatIds)));
         },
         async lockSeatsForReservation(
             _userId: string,
@@ -74,10 +69,7 @@ export function createReservationRepository(
                     .update(eventSeats)
                     .set({ status: SeatStatus.Reserved, reservedUntil })
                     .where(
-                        and(
-                            eq(eventSeats.eventId, eventId),
-                            inArray(eventSeats.seatId, seatIds)
-                        )
+                        and(eq(eventSeats.eventId, eventId), inArray(eventSeats.seatId, seatIds))
                     );
 
                 return locked.map(toReservedSeatResponse);

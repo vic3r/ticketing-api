@@ -33,14 +33,14 @@ This document summarizes the security measures applied to the ticketing API.
 
 ## OWASP Top 10 mapping
 
-| OWASP (2021) | Mitigation in this API |
-|--------------|-------------------------|
-| A01 Broken Access Control | JWT on protected routes; CORS allowlist; auth rate limit. |
-| A02 Cryptographic Failures | Passwords hashed with bcrypt; use HTTPS in production; secure JWT secret. |
-| A03 Injection | Drizzle ORM (parameterized queries); JSON schema validation on inputs. |
-| A04 Insecure Design | Rate limiting; auth throttling; body and input limits. |
-| A05 Security Misconfiguration | Helmet headers; generic 500 messages in prod; restrictive CORS. |
-| A07 Identification and Authentication Failures | Stricter rate limit on login/register; strong password hashing; JWT. |
+| OWASP (2021)                                   | Mitigation in this API                                                    |
+| ---------------------------------------------- | ------------------------------------------------------------------------- |
+| A01 Broken Access Control                      | JWT on protected routes; CORS allowlist; auth rate limit.                 |
+| A02 Cryptographic Failures                     | Passwords hashed with bcrypt; use HTTPS in production; secure JWT secret. |
+| A03 Injection                                  | Drizzle ORM (parameterized queries); JSON schema validation on inputs.    |
+| A04 Insecure Design                            | Rate limiting; auth throttling; body and input limits.                    |
+| A05 Security Misconfiguration                  | Helmet headers; generic 500 messages in prod; restrictive CORS.           |
+| A07 Identification and Authentication Failures | Stricter rate limit on login/register; strong password hashing; JWT.      |
 
 ## Environment variables (security-related)
 

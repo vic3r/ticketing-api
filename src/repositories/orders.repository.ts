@@ -6,8 +6,16 @@ import { and, eq, inArray } from 'drizzle-orm';
 import { OrderStatus } from '../enums/order-status.js';
 import { SeatStatus } from '../enums/seat-status.js';
 import { StripeWebhookEventType } from '../enums/stripe-webhook-event.js';
-import { InvalidWebhookSignatureError, OrderCreationFailedError, SeatsNotFoundError } from '../errors/orders.errors.js';
-import type { CreateOrderResponse, OrderRequest, WebhookHandledResponse } from '../dto/orders.dto.js';
+import {
+    InvalidWebhookSignatureError,
+    OrderCreationFailedError,
+    SeatsNotFoundError,
+} from '../errors/orders.errors.js';
+import type {
+    CreateOrderResponse,
+    OrderRequest,
+    WebhookHandledResponse,
+} from '../dto/orders.dto.js';
 import type { IOrdersRepository } from '../interfaces/orders.repository.interface.js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
@@ -40,7 +48,7 @@ function computeTotalAmountFromSeatsAndTiers(
 ): number {
     const priceByTierId = Object.fromEntries(tiers.map((t) => [t.id, parseFloat(t.price)]));
     return selectedSeats.reduce(
-        (acc, seat) => acc + (seat.ticketTierId ? priceByTierId[seat.ticketTierId] ?? 0 : 0),
+        (acc, seat) => acc + (seat.ticketTierId ? (priceByTierId[seat.ticketTierId] ?? 0) : 0),
         0
     );
 }
@@ -97,12 +105,7 @@ async function ensureSeatsAvailableForEvent(eventId: string, seatIds: string[]):
     const rows = await db
         .select({ seatId: eventSeats.seatId })
         .from(eventSeats)
-        .where(
-            and(
-                eq(eventSeats.eventId, eventId),
-                inArray(eventSeats.seatId, seatIds)
-            )
-        );
+        .where(and(eq(eventSeats.eventId, eventId), inArray(eventSeats.seatId, seatIds)));
     const foundIds = new Set(rows.map((r) => r.seatId));
     const missing = seatIds.filter((id) => !foundIds.has(id));
     if (missing.length > 0) throw new SeatsNotFoundError();
@@ -124,17 +127,17 @@ async function markEventSeatsSold(eventId: string, seatIds: string[]) {
     await db
         .update(eventSeats)
         .set({ status: SeatStatus.Sold, reservedUntil: null })
-        .where(
-            and(
-                eq(eventSeats.eventId, eventId),
-                inArray(eventSeats.seatId, seatIds)
-            )
-        );
+        .where(and(eq(eventSeats.eventId, eventId), inArray(eventSeats.seatId, seatIds)));
 }
 
 // --- Single-responsibility: ticket insert ---
 
-function generateTicketQrPayload(payload: { ticketId: string; userId: string; eventId: string; seatId: string }) {
+function generateTicketQrPayload(payload: {
+    ticketId: string;
+    userId: string;
+    eventId: string;
+    seatId: string;
+}) {
     return jwt.sign(payload, process.env.JWT_SECRET ?? '', { expiresIn: '30d' });
 }
 
@@ -151,7 +154,11 @@ async function insertTicket(values: {
 
 // --- Single-responsibility: webhook verification ---
 
-function constructStripeWebhookEvent(payload: string | Buffer, signature: string, secret: string): Stripe.Event {
+function constructStripeWebhookEvent(
+    payload: string | Buffer,
+    signature: string,
+    secret: string
+): Stripe.Event {
     return stripe.webhooks.constructEvent(payload, signature, secret);
 }
 
@@ -168,7 +175,9 @@ export const createOrdersRepository = (): IOrdersRepository => {
                 throw new SeatsNotFoundError();
             }
 
-            const tierIds = [...new Set(selectedSeats.map((s) => s.ticketTierId).filter(Boolean))] as string[];
+            const tierIds = [
+                ...new Set(selectedSeats.map((s) => s.ticketTierId).filter(Boolean)),
+            ] as string[];
             const tiers = await findTicketTiersByIds(tierIds);
             const totalAmount = computeTotalAmountFromSeatsAndTiers(selectedSeats, tiers);
 
@@ -193,7 +202,10 @@ export const createOrdersRepository = (): IOrdersRepository => {
             };
         },
 
-        async handleWebhook(payload: { body: string | Buffer; signature: string }): Promise<WebhookHandledResponse> {
+        async handleWebhook(payload: {
+            body: string | Buffer;
+            signature: string;
+        }): Promise<WebhookHandledResponse> {
             let event: Stripe.Event;
             try {
                 event = constructStripeWebhookEvent(

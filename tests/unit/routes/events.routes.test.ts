@@ -103,7 +103,10 @@ describe('Events routes', () => {
                 updatedAt: new Date(),
             };
             vi.mocked(mockEventsService.create).mockResolvedValue(created);
-            const token = app.jwt.sign({ userId: 'o1', email: 'o@o.com', role: 'admin' }, { expiresIn: '7d' });
+            const token = app.jwt.sign(
+                { userId: 'o1', email: 'o@o.com', role: 'admin' },
+                { expiresIn: '7d' }
+            );
             const res = await app.inject({
                 method: 'POST',
                 url: '/events',
@@ -140,7 +143,10 @@ describe('Events routes', () => {
         });
 
         it('returns 403 when user is not admin', async () => {
-            const token = app.jwt.sign({ userId: 'u1', email: 'u@u.com', role: 'user' }, { expiresIn: '7d' });
+            const token = app.jwt.sign(
+                { userId: 'u1', email: 'u@u.com', role: 'user' },
+                { expiresIn: '7d' }
+            );
             const res = await app.inject({
                 method: 'POST',
                 url: '/events',
@@ -161,7 +167,10 @@ describe('Events routes', () => {
 
         it('returns 500 when EventCreationFailedError', async () => {
             vi.mocked(mockEventsService.create).mockRejectedValue(new EventCreationFailedError());
-            const token = app.jwt.sign({ userId: 'o1', email: 'o@o.com', role: 'admin' }, { expiresIn: '7d' });
+            const token = app.jwt.sign(
+                { userId: 'o1', email: 'o@o.com', role: 'admin' },
+                { expiresIn: '7d' }
+            );
             const res = await app.inject({
                 method: 'POST',
                 url: '/events',

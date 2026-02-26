@@ -45,13 +45,20 @@ describe('Orders routes', () => {
             const res = await app.inject({
                 method: 'POST',
                 url: '/orders/checkout',
-                payload: { userId: 'u1', eventId: 'e1', seatIds: ['missing'], email: 'u@example.com' },
+                payload: {
+                    userId: 'u1',
+                    eventId: 'e1',
+                    seatIds: ['missing'],
+                    email: 'u@example.com',
+                },
             });
             expect(res.statusCode).toBe(404);
         });
 
         it('returns 500 when OrderCreationFailedError', async () => {
-            vi.mocked(mockOrdersService.checkOut).mockRejectedValue(new OrderCreationFailedError('Stripe failed'));
+            vi.mocked(mockOrdersService.checkOut).mockRejectedValue(
+                new OrderCreationFailedError('Stripe failed')
+            );
             const res = await app.inject({
                 method: 'POST',
                 url: '/orders/checkout',
@@ -86,7 +93,9 @@ describe('Orders routes', () => {
         });
 
         it('returns 401 when InvalidWebhookSignatureError', async () => {
-            vi.mocked(mockOrdersService.handleWebhook).mockRejectedValue(new InvalidWebhookSignatureError());
+            vi.mocked(mockOrdersService.handleWebhook).mockRejectedValue(
+                new InvalidWebhookSignatureError()
+            );
             const res = await app.inject({
                 method: 'POST',
                 url: '/orders/webhook',

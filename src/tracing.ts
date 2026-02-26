@@ -6,7 +6,12 @@
  */
 import { trace } from '@opentelemetry/api';
 import type { Span, SpanAttributes, Tracer } from '@opentelemetry/api';
-import { NodeTracerProvider, BatchSpanProcessor, SimpleSpanProcessor, ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
+import {
+    NodeTracerProvider,
+    BatchSpanProcessor,
+    SimpleSpanProcessor,
+    ConsoleSpanExporter,
+} from '@opentelemetry/sdk-trace-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { resourceFromAttributes } from '@opentelemetry/resources';
@@ -64,7 +69,9 @@ export function initTracing(): void {
 
     const spanProcessors: import('@opentelemetry/sdk-trace-base').SpanProcessor[] = [];
     if (exporterKind === 'otlp' && otlpEndpoint) {
-        const url = otlpEndpoint.endsWith('/v1/traces') ? otlpEndpoint : `${otlpEndpoint.replace(/\/$/, '')}/v1/traces`;
+        const url = otlpEndpoint.endsWith('/v1/traces')
+            ? otlpEndpoint
+            : `${otlpEndpoint.replace(/\/$/, '')}/v1/traces`;
         spanProcessors.push(new BatchSpanProcessor(new OTLPTraceExporter({ url })));
     } else if (exporterKind === 'console') {
         spanProcessors.push(new SimpleSpanProcessor(new ConsoleSpanExporter()));

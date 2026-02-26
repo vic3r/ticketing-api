@@ -157,4 +157,4 @@ curl -s -X POST http://localhost:3001/events \
 
 ---
 
-*Optional: install `jq` for pretty-printed JSON (`brew install jq` on macOS). Omit `| jq` to see raw response.*
+_Optional: install `jq` for pretty-printed JSON (`brew install jq` on macOS). Omit `| jq` to see raw response._

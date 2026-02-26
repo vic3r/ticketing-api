@@ -29,7 +29,12 @@ describe('OrdersService', () => {
             expect(result.orderId).toBe('ord-1');
             expect(result.clientSecret).toBe('pi_secret_xxx');
             expect(mockOrdersRepository.create).toHaveBeenCalledWith(
-                expect.objectContaining({ userId: 'u1', eventId: 'e1', seatIds: ['s1'], email: 'u@example.com' })
+                expect.objectContaining({
+                    userId: 'u1',
+                    eventId: 'e1',
+                    seatIds: ['s1'],
+                    email: 'u@example.com',
+                })
             );
         });
 
@@ -57,16 +62,22 @@ describe('OrdersService', () => {
                 signature: 'sig',
             });
             expect(result).toEqual({ received: true });
-            expect(mockOrdersRepository.handleWebhook).toHaveBeenCalledWith({ body: '{}', signature: 'sig' });
+            expect(mockOrdersRepository.handleWebhook).toHaveBeenCalledWith({
+                body: '{}',
+                signature: 'sig',
+            });
         });
 
         it('propagates invalid signature error', async () => {
-            const { InvalidWebhookSignatureError } = await import('../../../src/errors/orders.errors.js');
-            vi.mocked(mockOrdersRepository.handleWebhook).mockRejectedValue(new InvalidWebhookSignatureError());
+            const { InvalidWebhookSignatureError } =
+                await import('../../../src/errors/orders.errors.js');
+            vi.mocked(mockOrdersRepository.handleWebhook).mockRejectedValue(
+                new InvalidWebhookSignatureError()
+            );
             const service = createOrdersService(mockOrdersRepository);
-            await expect(
-                service.handleWebhook({ body: '{}', signature: 'bad' })
-            ).rejects.toThrow(InvalidWebhookSignatureError);
+            await expect(service.handleWebhook({ body: '{}', signature: 'bad' })).rejects.toThrow(
+                InvalidWebhookSignatureError
+            );
         });
     });
 });

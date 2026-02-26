@@ -33,7 +33,9 @@ export async function reservationsRoutes(app: FastifyInstance, opts: Reservation
         }
         if (!seatIds || !isStringArray(seatIds) || seatIds.length === 0) {
             request.log.warn('reservation rejected: invalid seatIds');
-            return reply.status(400).send({ message: 'Seat IDs are required and must be a non-empty array of strings' });
+            return reply.status(400).send({
+                message: 'Seat IDs are required and must be a non-empty array of strings',
+            });
         }
         if (!areValidUuids(seatIds)) {
             request.log.warn({ seatIds }, 'reservation rejected: seat IDs must be valid UUIDs');
@@ -50,15 +52,24 @@ export async function reservationsRoutes(app: FastifyInstance, opts: Reservation
                 span.setAttribute('reservation.seatCount', seatIds.length);
                 return reservationService.lockSeatsForReservation(user.userId, eventId, seatIds);
             });
-            request.log.info({ userId: user.userId, eventId, seatIds, count: seats.length }, 'seats reserved');
+            request.log.info(
+                { userId: user.userId, eventId, seatIds, count: seats.length },
+                'seats reserved'
+            );
             return reply.status(200).send({ seats });
         } catch (error) {
             if (error instanceof ReservationConflictError) {
-                request.log.warn({ userId: user.userId, seatIds }, 'reservation conflict: seats not available');
+                request.log.warn(
+                    { userId: user.userId, seatIds },
+                    'reservation conflict: seats not available'
+                );
                 return reply.status(409).send({ message: error.message });
             }
             if (error instanceof Error) {
-                request.log.error({ err: error, userId: user.userId, seatIds }, 'reservation failed');
+                request.log.error(
+                    { err: error, userId: user.userId, seatIds },
+                    'reservation failed'
+                );
                 return reply.status(500).send({ message: error.message });
             }
             return reply.status(500).send({ message: 'An unknown error occurred' });

@@ -1,4 +1,13 @@
-import { pgTable, uuid, text, integer, timestamp, boolean, numeric, pgEnum } from 'drizzle-orm/pg-core';
+import {
+    pgTable,
+    uuid,
+    text,
+    integer,
+    timestamp,
+    boolean,
+    numeric,
+    pgEnum,
+} from 'drizzle-orm/pg-core';
 
 export const seatsStatusEnum = pgEnum('seats_status', ['available', 'sold', 'reserved']);
 export const orderStatusEnum = pgEnum('order_status', ['pending', 'paid', 'cancelled', 'refunded']);
@@ -63,7 +72,9 @@ export const ticketTiers = pgTable('ticket_tiers', {
 /** Physical seats at a venue (layout only). Same seats reused for every event at that venue. */
 export const seats = pgTable('seats', {
     id: uuid('id').primaryKey().defaultRandom(),
-    venueId: uuid('venue_id').references(() => venues.id).notNull(),
+    venueId: uuid('venue_id')
+        .references(() => venues.id)
+        .notNull(),
     ticketTierId: uuid('ticket_tier_id').references(() => ticketTiers.id),
     section: text('section').notNull(),
     row: text('row'),
@@ -76,8 +87,12 @@ export const seats = pgTable('seats', {
 export const eventSeats = pgTable(
     'event_seats',
     {
-        eventId: uuid('event_id').references(() => events.id).notNull(),
-        seatId: uuid('seat_id').references(() => seats.id).notNull(),
+        eventId: uuid('event_id')
+            .references(() => events.id)
+            .notNull(),
+        seatId: uuid('seat_id')
+            .references(() => seats.id)
+            .notNull(),
         status: seatsStatusEnum('status').notNull().default('available'),
         reservedUntil: timestamp('reserved_until'),
         createdAt: timestamp('created_at').notNull().defaultNow(),

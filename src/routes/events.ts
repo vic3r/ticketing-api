@@ -13,7 +13,9 @@ interface EventsRoutesOptions {
 export async function eventsRoutes(app: FastifyInstance, opts: EventsRoutesOptions) {
     const { eventsService } = opts;
     app.get('/events', async (_request, reply) => {
-        const allEvents = await runWithSpan('events.findAll', () => eventsService.findAllPublished());
+        const allEvents = await runWithSpan('events.findAll', () =>
+            eventsService.findAllPublished()
+        );
         return reply.status(200).send(allEvents);
     });
 

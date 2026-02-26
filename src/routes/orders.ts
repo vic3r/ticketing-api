@@ -13,7 +13,7 @@ export interface OrdersRoutesOptions {
 }
 
 export async function ordersRoutes(app: FastifyInstance, opts: OrdersRoutesOptions) {
-    const { ordersService } = opts; 
+    const { ordersService } = opts;
     app.post('/orders/checkout', async (request, reply) => {
         const body = request.body as OrderRequest;
         try {
@@ -23,15 +23,24 @@ export async function ordersRoutes(app: FastifyInstance, opts: OrdersRoutesOptio
                 span.setAttribute('order.seatCount', body.seatIds?.length ?? 0);
                 return ordersService.checkOut(body);
             });
-            request.log.info({ orderId: result.orderId, userId: body.userId, eventId: body.eventId }, 'checkout completed');
+            request.log.info(
+                { orderId: result.orderId, userId: body.userId, eventId: body.eventId },
+                'checkout completed'
+            );
             return reply.status(200).send(result);
         } catch (error) {
             if (error instanceof SeatsNotFoundError) {
-                request.log.warn({ userId: body.userId, eventId: body.eventId, seatIds: body.seatIds }, 'checkout: seats not found');
+                request.log.warn(
+                    { userId: body.userId, eventId: body.eventId, seatIds: body.seatIds },
+                    'checkout: seats not found'
+                );
                 return reply.status(404).send({ message: error.message });
             }
             if (error instanceof OrderCreationFailedError) {
-                request.log.error({ err: error, userId: body.userId, eventId: body.eventId }, 'checkout failed');
+                request.log.error(
+                    { err: error, userId: body.userId, eventId: body.eventId },
+                    'checkout failed'
+                );
                 return reply.status(500).send({ message: error.message });
             }
             if (error instanceof Error) {
@@ -46,10 +55,16 @@ export async function ordersRoutes(app: FastifyInstance, opts: OrdersRoutesOptio
     app.post('/orders/webhook', async (request, reply) => {
         const signature = (request.headers['stripe-signature'] as string) ?? '';
         const raw = (request as { rawBody?: string | Buffer }).rawBody;
-        const body = raw ?? (typeof request.body === 'object' ? JSON.stringify(request.body ?? {}) : String(request.body ?? ''));
+        const body =
+            raw ??
+            (typeof request.body === 'object'
+                ? JSON.stringify(request.body ?? {})
+                : String(request.body ?? ''));
         const payload = { body, signature };
         try {
-            const result = await runWithSpan('orders.webhook', () => ordersService.handleWebhook(payload));
+            const result = await runWithSpan('orders.webhook', () =>
+                ordersService.handleWebhook(payload)
+            );
             request.log.info({ received: result.received }, 'webhook handled');
             return reply.status(200).send(result);
         } catch (error) {

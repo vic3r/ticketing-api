@@ -27,7 +27,9 @@ async function run() {
         .returning({ id: seats.id });
 
     const ids = inserted.map((r) => r.id);
-    console.log('Seats created for venue. Create an event with this venueId; then reserve with eventId + these seat IDs:');
+    console.log(
+        'Seats created for venue. Create an event with this venueId; then reserve with eventId + these seat IDs:'
+    );
     console.log('Seat IDs:', JSON.stringify(ids));
     console.log('\nExample (after creating event with this venue and getting EVENT_ID):');
     console.log(`curl -s -X POST http://localhost:3001/reservations \\`);

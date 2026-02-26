@@ -14,8 +14,14 @@ export const eventsRepository: IEventsRepository = {
         return rows[0] ?? null;
     },
     async create(input: EventRequest) {
-        const startDate = input.startDate instanceof Date ? input.startDate : new Date(input.startDate as unknown as string);
-        const endDate = input.endDate instanceof Date ? input.endDate : new Date(input.endDate as unknown as string);
+        const startDate =
+            input.startDate instanceof Date
+                ? input.startDate
+                : new Date(input.startDate as unknown as string);
+        const endDate =
+            input.endDate instanceof Date
+                ? input.endDate
+                : new Date(input.endDate as unknown as string);
         const [record] = await db
             .insert(events)
             .values({
@@ -30,7 +36,10 @@ export const eventsRepository: IEventsRepository = {
             .returning();
         if (!record) throw new EventCreationFailedError();
         if (record.venueId) {
-            const venueSeats = await db.select({ id: seats.id }).from(seats).where(eq(seats.venueId, record.venueId));
+            const venueSeats = await db
+                .select({ id: seats.id })
+                .from(seats)
+                .where(eq(seats.venueId, record.venueId));
             if (venueSeats.length > 0) {
                 await db.insert(eventSeats).values(
                     venueSeats.map((s) => ({

@@ -33,7 +33,11 @@ describe('ReservationService', () => {
             const result = await service.lockSeatsForReservation('user-1', 'ev-1', ['s1', 's2']);
             expect(result).toHaveLength(2);
             expect(result[0]?.id).toBe('s1');
-            expect(mockReservationRepository.lockSeatsForReservation).toHaveBeenCalledWith('user-1', 'ev-1', ['s1', 's2']);
+            expect(mockReservationRepository.lockSeatsForReservation).toHaveBeenCalledWith(
+                'user-1',
+                'ev-1',
+                ['s1', 's2']
+            );
         });
 
         it('propagates ReservationConflictError when seats not available', async () => {
@@ -41,9 +45,9 @@ describe('ReservationService', () => {
                 new ReservationConflictError()
             );
             const service = createReservationService(mockReservationRepository);
-            await expect(
-                service.lockSeatsForReservation('user-1', 'ev-1', ['s1'])
-            ).rejects.toThrow(ReservationConflictError);
+            await expect(service.lockSeatsForReservation('user-1', 'ev-1', ['s1'])).rejects.toThrow(
+                ReservationConflictError
+            );
         });
     });
 });

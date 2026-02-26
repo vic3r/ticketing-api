@@ -54,7 +54,12 @@ export const buildApp = (deps?: AppDependencies) => {
         logger: loggerOptions,
         disableRequestLogging: true, // we log in onResponse with level by statusCode
         schemaErrorFormatter(errors, dataVar) {
-            const messages = errors.map((e: { instancePath?: string; message?: string }) => `${dataVar}${e.instancePath ?? ''} ${e.message ?? ''}`).join(', ');
+            const messages = errors
+                .map(
+                    (e: { instancePath?: string; message?: string }) =>
+                        `${dataVar}${e.instancePath ?? ''} ${e.message ?? ''}`
+                )
+                .join(', ');
             const err = new Error(messages) as Error & { statusCode: number; code: string };
             err.statusCode = 400;
             err.code = 'FST_ERR_VALIDATION';
@@ -81,7 +86,6 @@ export const buildApp = (deps?: AppDependencies) => {
         done();
     });
 
-
     app.register(helmet, helmetOptions);
     app.register(cors, { origin: getCorsOrigin(), credentials: true });
     const globalMax = deps?.rateLimitMax ?? rateLimitConfig.max;
@@ -102,9 +106,15 @@ export const buildApp = (deps?: AppDependencies) => {
         return { status: 'ok' };
     });
 
-    const authService = deps?.authService ?? createAuthService(deps?.userRepository ?? userRepository);
-    app.register(authRoutes, { authService, authRateLimitMax: authMax, authRateLimitTimeWindowMs: authRateLimitConfig.timeWindowMs });
-    const eventsService = deps?.eventsService ?? createEventsService(deps?.eventsRepository ?? eventsRepository);
+    const authService =
+        deps?.authService ?? createAuthService(deps?.userRepository ?? userRepository);
+    app.register(authRoutes, {
+        authService,
+        authRateLimitMax: authMax,
+        authRateLimitTimeWindowMs: authRateLimitConfig.timeWindowMs,
+    });
+    const eventsService =
+        deps?.eventsService ?? createEventsService(deps?.eventsRepository ?? eventsRepository);
     app.register(eventsRoutes, { eventsService });
     const reservationService =
         deps?.reservationService ??
@@ -115,8 +125,7 @@ export const buildApp = (deps?: AppDependencies) => {
             return createReservationService(reservationRepository);
         })();
     const ordersService =
-        deps?.ordersService ??
-        (() => createOrdersService(createOrdersRepository()))();
+        deps?.ordersService ?? (() => createOrdersService(createOrdersRepository()))();
     app.register(reservationsRoutes, { reservationService });
     app.register(ordersRoutes, { ordersService });
 

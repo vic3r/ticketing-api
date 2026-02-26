@@ -91,22 +91,26 @@ describe('Reservation repository', () => {
                         }),
                     }),
                     update: vi.fn().mockReturnValue({
-                        set: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) }),
+                        set: vi
+                            .fn()
+                            .mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) }),
                     }),
                 };
                 return fn(mockTx);
             });
 
-            await expect(repo.lockSeatsForReservation('user-1', eventId, ['s1', 's2'])).rejects.toThrow(
-                ReservationConflictError
-            );
+            await expect(
+                repo.lockSeatsForReservation('user-1', eventId, ['s1', 's2'])
+            ).rejects.toThrow(ReservationConflictError);
             expect(mockQueue.add).not.toHaveBeenCalled();
         });
 
         it('does not call queue.add when transaction throws', async () => {
             db.transaction.mockRejectedValue(new Error('DB error'));
 
-            await expect(repo.lockSeatsForReservation('user-1', eventId, ['s1'])).rejects.toThrow('DB error');
+            await expect(repo.lockSeatsForReservation('user-1', eventId, ['s1'])).rejects.toThrow(
+                'DB error'
+            );
             expect(mockQueue.add).not.toHaveBeenCalled();
         });
     });

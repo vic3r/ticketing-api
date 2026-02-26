@@ -4,7 +4,10 @@ import type { IAuthService } from '../../src/interfaces/auth.service.interface.j
 import type { IEventsService } from '../../src/interfaces/events.service.interface.js';
 import type { IReservationService } from '../../src/interfaces/reservation.service.interface.js';
 import type { IOrdersService } from '../../src/interfaces/orders.service.interface.js';
-import { EmailAlreadyRegisteredError, InvalidEmailOrPasswordError } from '../../src/errors/auth.errors.js';
+import {
+    EmailAlreadyRegisteredError,
+    InvalidEmailOrPasswordError,
+} from '../../src/errors/auth.errors.js';
 import { EventStatus } from '../../src/enums/event-status.js';
 import { ReservationConflictError } from '../../src/errors/reservation.errors.js';
 import { SeatsNotFoundError } from '../../src/errors/orders.errors.js';
@@ -88,7 +91,9 @@ describe('App integration', () => {
         });
 
         it('register returns 400 when email already taken', async () => {
-            vi.mocked(mockAuthService.register).mockRejectedValue(new EmailAlreadyRegisteredError());
+            vi.mocked(mockAuthService.register).mockRejectedValue(
+                new EmailAlreadyRegisteredError()
+            );
             const res = await app.inject({
                 method: 'POST',
                 url: '/auth/register',
@@ -154,7 +159,10 @@ describe('App integration', () => {
                 updatedAt: new Date(),
             };
             vi.mocked(mockEventsService.create).mockResolvedValue(event);
-            const token = app.jwt.sign({ userId: 'o1', email: 'o@o.com', role: 'admin' }, { expiresIn: '7d' });
+            const token = app.jwt.sign(
+                { userId: 'o1', email: 'o@o.com', role: 'admin' },
+                { expiresIn: '7d' }
+            );
             const res = await app.inject({
                 method: 'POST',
                 url: '/events',
@@ -260,7 +268,12 @@ describe('App integration', () => {
             const res = await app.inject({
                 method: 'POST',
                 url: '/orders/checkout',
-                payload: { userId: 'u1', eventId: 'e1', seatIds: ['missing'], email: 'u@example.com' },
+                payload: {
+                    userId: 'u1',
+                    eventId: 'e1',
+                    seatIds: ['missing'],
+                    email: 'u@example.com',
+                },
             });
             expect(res.statusCode).toBe(404);
         });

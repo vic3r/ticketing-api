@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createAuthService } from '../../../src/services/auth.service.js';
-import { EmailAlreadyRegisteredError, InvalidEmailOrPasswordError } from '../../../src/errors/auth.errors.js';
+import {
+    EmailAlreadyRegisteredError,
+    InvalidEmailOrPasswordError,
+} from '../../../src/errors/auth.errors.js';
 import type { IUserRepository } from '../../../src/interfaces/user.repository.interface.js';
 
 vi.mock('bcrypt', () => ({
@@ -42,7 +45,12 @@ describe('AuthService', () => {
                 password: 'secret',
                 name: 'New User',
             });
-            expect(result).toEqual({ id: 'user-1', email: 'test@example.com', name: 'Test', role: 'user' });
+            expect(result).toEqual({
+                id: 'user-1',
+                email: 'test@example.com',
+                name: 'Test',
+                role: 'user',
+            });
             expect(mockUserRepository.findByEmail).toHaveBeenCalledWith('new@example.com');
             expect(mockUserRepository.create).toHaveBeenCalledOnce();
         });
@@ -78,7 +86,12 @@ describe('AuthService', () => {
             });
             const service = createAuthService(mockUserRepository);
             const result = await service.login({ email: 'u@example.com', password: 'correct' });
-            expect(result).toEqual({ id: 'u1', email: 'u@example.com', name: 'User', role: 'user' });
+            expect(result).toEqual({
+                id: 'u1',
+                email: 'u@example.com',
+                name: 'User',
+                role: 'user',
+            });
         });
 
         it('throws InvalidEmailOrPasswordError when user not found', async () => {
@@ -91,7 +104,9 @@ describe('AuthService', () => {
 
         it('throws InvalidEmailOrPasswordError when password is wrong', async () => {
             const bcrypt = await import('bcrypt');
-            (vi.mocked(bcrypt.default.compare) as ReturnType<typeof vi.fn>).mockResolvedValue(false);
+            (vi.mocked(bcrypt.default.compare) as ReturnType<typeof vi.fn>).mockResolvedValue(
+                false
+            );
             vi.mocked(mockUserRepository.findByEmail).mockResolvedValue({
                 id: 'u1',
                 email: 'u@example.com',

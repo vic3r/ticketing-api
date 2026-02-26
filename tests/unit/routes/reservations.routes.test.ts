@@ -100,7 +100,9 @@ describe('Reservations routes', () => {
         });
 
         it('returns 500 when service throws generic error', async () => {
-            vi.mocked(mockReservationService.lockSeatsForReservation).mockRejectedValue(new Error('Queue error'));
+            vi.mocked(mockReservationService.lockSeatsForReservation).mockRejectedValue(
+                new Error('Queue error')
+            );
             const res = await app.inject({
                 method: 'POST',
                 url: '/reservations',

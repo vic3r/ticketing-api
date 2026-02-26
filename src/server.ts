@@ -13,4 +13,3 @@ app.listen({ port: 3001, host: '0.0.0.0' }, (err: Error | null, address: string)
     }
     app.log.info({ address }, 'Server is running');
 });
-

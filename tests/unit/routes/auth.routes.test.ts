@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../../../src/app.js';
 import type { IAuthService } from '../../../src/interfaces/auth.service.interface.js';
-import { EmailAlreadyRegisteredError, InvalidEmailOrPasswordError } from '../../../src/errors/auth.errors.js';
+import {
+    EmailAlreadyRegisteredError,
+    InvalidEmailOrPasswordError,
+} from '../../../src/errors/auth.errors.js';
 
 describe('Auth routes', () => {
     let app: Awaited<ReturnType<typeof buildApp>>;
@@ -37,11 +40,18 @@ describe('Auth routes', () => {
             expect(res.statusCode).toBe(201);
             const body = res.json();
             expect(body).toHaveProperty('token');
-            expect(body.user).toEqual({ id: 'user-1', email: 'test@example.com', name: 'Test', role: 'user' });
+            expect(body.user).toEqual({
+                id: 'user-1',
+                email: 'test@example.com',
+                name: 'Test',
+                role: 'user',
+            });
         });
 
         it('returns 400 when email already registered', async () => {
-            vi.mocked(mockAuthService.register).mockRejectedValue(new EmailAlreadyRegisteredError());
+            vi.mocked(mockAuthService.register).mockRejectedValue(
+                new EmailAlreadyRegisteredError()
+            );
             const res = await app.inject({
                 method: 'POST',
                 url: '/auth/register',
