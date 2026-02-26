@@ -26,29 +26,60 @@ services:
         healthcheck:
             test: ['CMD', 'redis-cli', 'ping']
 
-    kafka:
-        image: bitnami/kafka:3.7
-        container_name: ticketing-kafka
+    zookeeper:
+        image: confluentinc/cp-zookeeper:7.5.0
+        container_name: ticketing-zookeeper
         environment:
-            KAFKA_CFG_NODE_ID: 0
-            KAFKA_CFG_PROCESS_ROLES: controller,broker
-            KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
-            KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-            KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
-            KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
-            KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 0@kafka:9093
+            ZOOKEEPER_CLIENT_PORT: 2181
+            ZOOKEEPER_TICK_TIME: 2000
+        ports:
+            - '2181:2181'
+        healthcheck:
+            test: ['CMD-SHELL', 'nc -z localhost 2181 || exit 1']
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    kafka:
+        image: confluentinc/cp-kafka:7.5.0
+        container_name: ticketing-kafka
+        depends_on:
+            zookeeper:
+                condition: service_healthy
         ports:
             - '9092:9092'
+            - '9093:29092'
+        environment:
+            KAFKA_BROKER_ID: 1
+            KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+            KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
+            KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+            KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
+            KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+            KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+            KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+            KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
         healthcheck:
-            test:
-                [
-                    'CMD-SHELL',
-                    '/opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list || true',
-                ]
+            test: ['CMD-SHELL', 'kafka-broker-api-versions --bootstrap-server localhost:9092 || exit 1']
             interval: 10s
             timeout: 10s
             retries: 5
             start_period: 15s
+
+    # Creates required topics and exits; API starts after this completes (with ~3s delay for Kafka to be ready).
+    kafka-init:
+        image: confluentinc/cp-kafka:7.5.0
+        container_name: ticketing-kafka-init
+        depends_on:
+            kafka:
+                condition: service_healthy
+        restart: 'no'
+        command: >
+            bash -c "
+            sleep 3 &&
+            kafka-topics --create --bootstrap-server kafka:29092 --topic payment.succeeded --partitions 1 --replication-factor 1 --if-not-exists &&
+            kafka-topics --create --bootstrap-server kafka:29092 --topic payment.succeeded.dlq --partitions 1 --replication-factor 1 --if-not-exists
+            "
 
     jaeger:
         image: jaegertracing/all-in-one:latest
@@ -67,7 +98,7 @@ services:
             NODE_ENV: development
             DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ticketing
             REDIS_URL: redis://redis:6379
-            KAFKA_BROKERS: kafka:9092
+            KAFKA_BROKERS: kafka:29092
             JWT_SECRET: your-256-bit-secret-key-here-change-in-production-minimum-32-characters
             FRONTEND_URL: https://localhost
             STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-sk_test_fake}
@@ -82,8 +113,8 @@ services:
                 condition: service_healthy
             redis:
                 condition: service_healthy
-            kafka:
-                condition: service_healthy
+            kafka-init:
+                condition: service_completed_successfully
             jaeger:
                 condition: service_started
         ports:
