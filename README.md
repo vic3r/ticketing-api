@@ -30,12 +30,13 @@ Run the entire stack (API, Postgres, Redis, Kafka, Jaeger, Traefik) in one comma
 
 ## Testing with Postman
 
-1. **Import the collection**
-    - Open Postman → Import → choose `api/ticketing-api.postman.json`.
+1. **Import the collection and environments**
+    - **Collection:** Postman → Import → `api/ticketing-api.postman.json`.
+    - **Environments:** Import `api/postman-env-local.json` and `api/postman-env-https.json`, then select **Ticketing API – Local (HTTP)** or **Ticketing API – HTTPS (Traefik)** in the environment dropdown. For HTTPS, add `certs/server.crt` in Settings → Certificates for host `localhost` so SSL verification can stay on.
 
-2. **Set collection variables**
+2. **Set collection or environment variables**
     - **Docker:** `baseUrl` = `http://localhost:3001` (default; API port is exposed).
-    - **Docker (HTTPS via Traefik):** Use `baseUrl` = `https://localhost` and add the project’s `certs/server.crt` in Postman (see step 5 below) so you can keep SSL verification on.
+    - **Docker (HTTPS via Traefik):** Use the **Ticketing API – HTTPS (Traefik)** environment and add the project’s `certs/server.crt` in Postman (see step 7 below) so you can keep SSL verification on.
     - **Local dev (no Docker):** Run `npm run dev` and use `baseUrl` = `http://localhost:3001`.
 
 3. **Get a JWT**
@@ -44,9 +45,15 @@ Run the entire stack (API, Postgres, Redis, Kafka, Jaeger, Traefik) in one comma
     - In the collection, set variable **token** = that value (or use the collection’s “Set token from response” script if you add one).
 
 4. **Call protected endpoints**
-    - Use **Events → Create event (admin)**, **Venues → Create venue (admin)**, **Reservations → Reserve seats**, **Orders → Checkout**, etc. They use `Authorization: Bearer {{token}}` automatically.
+    - Use **Events → Create event (admin)**, **Venues → Create venue (admin)**, **Reservations → Reserve seats**, **Orders → Checkout**, etc. They use `Authorization: Bearer {{token}}` (or `{{adminToken}}` for Admin folder requests).
 
-5. **HTTPS with certificate verification (recommended for Traefik):** To use **https://localhost** with SSL verification **on** in Postman, trust the same cert Traefik uses:
+5. **Admin scenarios**
+    - **Auth → Login as admin** (user must exist with `role=admin`, e.g. `admin@example.com`). Then use the **Admin** folder: **Create venue (admin)**, **Create event (admin)**. **Create event as user (expect 403)** uses the regular user token and should return 403.
+
+6. **Run collection tests**
+    - Click the collection → **Run**. Select the requests to run and your environment. Postman will execute each request and run the **Tests** scripts (status codes, saving `token`/`eventId`/`venueId`, etc.). Use this to smoke-test the API.
+
+7. **HTTPS with certificate verification (recommended for Traefik):** To use **https://localhost** with SSL verification **on** in Postman, trust the same cert Traefik uses:
     - Generate certs if you haven’t: `./scripts/gen-certs.sh` (creates `certs/server.crt` and `certs/server.key`).
     - In Postman: **Settings** (gear) → **Certificates** → **Add Certificate**.
     - **Host:** `localhost`

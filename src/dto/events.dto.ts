@@ -27,4 +27,6 @@ export interface EventRequest {
     imageUrl: string | null;
     startDate: Date;
     endDate: Date;
+    /** If true, event appears in GET /events (public list). Default false (draft). */
+    isPublished?: boolean;
 }

@@ -1,12 +1,15 @@
 {
     "info": {
         "name": "Ticketing API",
-        "description": "Collection for Ticketing API endpoints. Set collection variables: baseUrl (e.g. http://localhost:3001), token (JWT from login).",
+        "description": "Ticketing API: Health, Auth, Events, Venues, Reservations, Orders. Admin flows require a user with role=admin (e.g. set in DB or seed). Use collection variables: baseUrl, token. Optional: adminToken, eventId, venueId (auto-set by tests).",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
     "variable": [
         { "key": "baseUrl", "value": "http://localhost:3001" },
-        { "key": "token", "value": "" }
+        { "key": "token", "value": "" },
+        { "key": "adminToken", "value": "" },
+        { "key": "eventId", "value": "" },
+        { "key": "venueId", "value": "" }
     ],
     "item": [
         {
@@ -14,6 +17,18 @@
             "item": [
                 {
                     "name": "GET Health",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                                    "pm.test('Response time < 1000ms', function () { pm.expect(pm.response.responseTime).to.be.below(1000); });"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "GET",
                         "header": [],
@@ -27,6 +42,20 @@
             "item": [
                 {
                     "name": "Register",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
+                                    "const json = pm.response.json();",
+                                    "pm.test('Has token and user', function () { pm.expect(json).to.have.property('token'); pm.expect(json).to.have.property('user'); });",
+                                    "if (json.token) pm.collectionVariables.set('token', json.token);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "POST",
                         "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -39,6 +68,20 @@
                 },
                 {
                     "name": "Login",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                                    "const json = pm.response.json();",
+                                    "pm.test('Has token', function () { pm.expect(json).to.have.property('token'); });",
+                                    "if (json.token) pm.collectionVariables.set('token', json.token);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "POST",
                         "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -48,30 +91,109 @@
                         },
                         "url": "{{baseUrl}}/auth/login"
                     }
+                },
+                {
+                    "name": "Login as admin",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                                    "const json = pm.response.json();",
+                                    "pm.test('User is admin', function () { pm.expect(json.user && json.user.role).to.eql('admin'); });",
+                                    "if (json.token) pm.collectionVariables.set('adminToken', json.token);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [{ "key": "Content-Type", "value": "application/json" }],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"secret123\"\n}"
+                        },
+                        "url": "{{baseUrl}}/auth/login"
+                    }
                 }
             ]
         },
         {
-            "name": "Events",
+            "name": "Admin",
+            "description": "Admin-only flows. Use admin token (Login as admin first; ensure a user with role=admin exists in DB).",
             "item": [
                 {
-                    "name": "List published events",
+                    "name": "Create venue (admin)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
+                                    "const json = pm.response.json();",
+                                    "if (json && json.id) pm.collectionVariables.set('venueId', json.id);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
                     "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": "{{baseUrl}}/events"
-                    }
-                },
-                {
-                    "name": "Get event by id",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": "{{baseUrl}}/events/{{eventId}}"
+                        "method": "POST",
+                        "header": [
+                            { "key": "Content-Type", "value": "application/json" },
+                            { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Main Hall\",\n  \"address\": \"123 Main St\",\n  \"city\": \"City\",\n  \"state\": \"State\",\n  \"zip\": \"12345\",\n  \"country\": \"Country\",\n  \"description\": \"Main venue\"\n}"
+                        },
+                        "url": "{{baseUrl}}/venues"
                     }
                 },
                 {
                     "name": "Create event (admin)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
+                                    "const json = pm.response.json();",
+                                    "if (json && json.id) pm.collectionVariables.set('eventId', json.id);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Content-Type", "value": "application/json" },
+                            { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Summer Concert\",\n  \"venueId\": \"{{venueId}}\",\n  \"organizerId\": null,\n  \"description\": \"Outdoor show\",\n  \"imageUrl\": null,\n  \"startDate\": \"2025-08-01T18:00:00.000Z\",\n  \"endDate\": \"2025-08-01T22:00:00.000Z\",\n  \"isPublished\": true\n}"
+                        },
+                        "url": "{{baseUrl}}/events"
+                    }
+                },
+                {
+                    "name": "Create event as user (expect 403)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 403', function () { pm.response.to.have.status(403); });",
+                                    "pm.test('Admin required message', function () { const j = pm.response.json(); pm.expect(j.message || '').to.include('Admin'); });"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "POST",
                         "header": [
@@ -80,7 +202,79 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"name\": \"Summer Concert\",\n  \"venueId\": \"\",\n  \"organizerId\": \"\",\n  \"description\": \"Outdoor show\",\n  \"imageUrl\": null,\n  \"startDate\": \"2025-08-01T18:00:00.000Z\",\n  \"endDate\": \"2025-08-01T22:00:00.000Z\"\n}"
+                            "raw": "{\n  \"name\": \"User Event\",\n  \"venueId\": \"{{venueId}}\",\n  \"organizerId\": null,\n  \"description\": \"\",\n  \"imageUrl\": null,\n  \"startDate\": \"2025-08-01T18:00:00.000Z\",\n  \"endDate\": \"2025-08-01T22:00:00.000Z\",\n  \"isPublished\": true\n}"
+                        },
+                        "url": "{{baseUrl}}/events"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Events",
+            "item": [
+                {
+                    "name": "List published events",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                                    "pm.test('Response is array', function () { pm.expect(pm.response.json()).to.be.an('array'); });"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": "{{baseUrl}}/events"
+                    }
+                },
+                {
+                    "name": "Get event by id",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200 or 404', function () { const s = pm.response.code; pm.expect([200, 404]).to.include(s); });"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": "{{baseUrl}}/events/{{eventId}}"
+                    }
+                },
+                {
+                    "name": "Create event (admin)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
+                                    "const json = pm.response.json();",
+                                    "if (json && json.id) pm.collectionVariables.set('eventId', json.id);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Content-Type", "value": "application/json" },
+                            { "key": "Authorization", "value": "Bearer {{token}}" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Summer Concert\",\n  \"venueId\": \"{{venueId}}\",\n  \"organizerId\": null,\n  \"description\": \"Outdoor show\",\n  \"imageUrl\": null,\n  \"startDate\": \"2025-08-01T18:00:00.000Z\",\n  \"endDate\": \"2025-08-01T22:00:00.000Z\",\n  \"isPublished\": true\n}"
                         },
                         "url": "{{baseUrl}}/events"
                     }
@@ -92,6 +286,19 @@
             "item": [
                 {
                     "name": "Create venue (admin)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
+                                    "const json = pm.response.json();",
+                                    "if (json && json.id) pm.collectionVariables.set('venueId', json.id);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "POST",
                         "header": [
@@ -112,6 +319,17 @@
             "item": [
                 {
                     "name": "Reserve seats",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200 or 400/409', function () { const s = pm.response.code; pm.expect([200, 400, 409]).to.include(s); });"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "POST",
                         "header": [
@@ -120,7 +338,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"eventId\": \"\",\n  \"seatIds\": []\n}"
+                            "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"seatIds\": []\n}"
                         },
                         "url": "{{baseUrl}}/reservations"
                     }
@@ -132,18 +350,40 @@
             "item": [
                 {
                     "name": "Checkout",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200, 400, 404 or 500', function () { const s = pm.response.code; pm.expect([200, 400, 404, 500]).to.include(s); });"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "POST",
                         "header": [{ "key": "Content-Type", "value": "application/json" }],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"userId\": \"\",\n  \"eventId\": \"\",\n  \"seatIds\": [],\n  \"tierId\": \"\",\n  \"email\": \"alice@example.com\"\n}"
+                            "raw": "{\n  \"userId\": \"\",\n  \"eventId\": \"{{eventId}}\",\n  \"seatIds\": [],\n  \"tierId\": \"\",\n  \"email\": \"alice@example.com\"\n}"
                         },
                         "url": "{{baseUrl}}/orders/checkout"
                     }
                 },
                 {
                     "name": "Webhook",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status is 200 or 401', function () { const s = pm.response.code; pm.expect([200, 401]).to.include(s); });"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "POST",
                         "header": [

@@ -32,6 +32,7 @@ export const eventsRepository: IEventsRepository = {
                 imageUrl: input.imageUrl,
                 startDate,
                 endDate,
+                isPublished: input.isPublished ?? false,
             })
             .returning();
         if (!record) throw new EventCreationFailedError();
