@@ -1,6 +1,6 @@
 import { Job, Queue, Worker } from 'bullmq';
 import type { ConnectionOptions } from 'bullmq';
-import type { IReservationRepository } from '../interfaces/reservation.repository.interface.js';
+import type { IReservationRepository } from '../../interfaces/reservation.repository.interface.js';
 
 export type ReservationJobData = { eventId: string; seatIds: string[] };
 

@@ -3,7 +3,7 @@ import {
     processReservationJob,
     createReservationQueue,
     createReservationWorker,
-} from '../../../src/queues/reservation.queue.js';
+} from '../../../src/messaging/queues/reservation.queue.js';
 import type { IReservationRepository } from '../../../src/interfaces/reservation.repository.interface.js';
 
 describe('Reservation queue', () => {

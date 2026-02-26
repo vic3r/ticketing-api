@@ -24,8 +24,8 @@ import type { FastifyRequest } from 'fastify';
 import { userRepository } from './repositories/user.repository.js';
 import { createAuthService } from './services/auth.service.js';
 import { authRoutes } from './routes/auth.js';
-import { createQueueConnection } from './redis.js';
-import { createReservationQueue } from './queues/reservation.queue.js';
+import { createQueueConnection } from './infra/redis.js';
+import { createReservationQueue } from './messaging/queues/reservation.queue.js';
 import { createReservationRepository } from './repositories/reservation.repository.js';
 import { createReservationService } from './services/reservation.service.js';
 import { reservationsRoutes } from './routes/reservations.js';
@@ -39,8 +39,8 @@ import { venuesRepository } from './repositories/venues.repository.js';
 import { ordersRoutes } from './routes/orders.js';
 import { createOrdersService } from './services/orders.service.js';
 import { createOrdersRepository } from './repositories/orders.repository.js';
-import { createPaymentProducer } from './kafka/producer.js';
-import { isKafkaEnabled } from './kafka/config.js';
+import { createPaymentProducer } from './messaging/kafka/producer.js';
+import { isKafkaEnabled } from './messaging/kafka/config.js';
 
 export interface AppDependencies {
     userRepository?: IUserRepository;
@@ -154,7 +154,7 @@ export const buildApp = async (deps?: AppDependencies) => {
 
     if (paymentProducer) {
         app.addHook('onReady', async () => {
-            const { startPaymentSucceededConsumer } = await import('./kafka/consumer.js');
+            const { startPaymentSucceededConsumer } = await import('./messaging/kafka/consumer.js');
             await startPaymentSucceededConsumer(ordersRepository);
         });
     }

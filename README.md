@@ -1,10 +1,14 @@
 # ticketing-api
 
-## Docker (full stack: API, Postgres, Redis, Kafka, Traefik, HTTPS)
+Node.js ticketing API (Fastify, Postgres, Redis, Kafka). Run the full stack with Docker Compose and test endpoints with Postman.
 
-Runs the API behind Traefik with HTTPS and optional load balancing.
+---
 
-1. **Generate self-signed TLS certs** (required for HTTPS):
+## Quick start with Docker Compose
+
+Run the entire stack (API, Postgres, Redis, Kafka, Jaeger, Traefik) in one command.
+
+1. **Generate self-signed TLS certs** (required for HTTPS behind Traefik):
 
     ```bash
     chmod +x scripts/gen-certs.sh && ./scripts/gen-certs.sh
@@ -16,29 +20,76 @@ Runs the API behind Traefik with HTTPS and optional load balancing.
     docker compose up -d --build
     ```
 
-3. **Access**:
-    - **HTTPS (recommended):** https://localhost/health (accept the self-signed cert in the browser).
-    - **HTTP:** http://localhost → redirects to HTTPS.
-    - **Direct API port** (if you add `ports: ["3001:3001"]` to the `api` service): http://localhost:3001.
+3. **Verify**:
+    - Open **https://localhost/health** in a browser (accept the self-signed certificate).
+    - You should see a healthy response from the API.
 
-4. **Load balancing:** Run multiple API replicas:
+4. **Direct API port:** The API is also exposed on **http://localhost:3001** so you can call it from Postman without going through Traefik or HTTPS.
 
-    ```bash
-    docker compose up -d --scale api=2
-    ```
+---
 
-    Traefik will round-robin between API instances.
+## Testing with Postman
 
-5. **Env:** Set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and `JWT_SECRET` in `.env` or export them. For Stripe webhooks, point the endpoint to `https://your-domain/orders/webhook` (or use a tunnel for local).
+1. **Import the collection**
+    - Open Postman → Import → choose `api/ticketing-api.postman.json`.
+
+2. **Set collection variables**
+    - **Docker:** `baseUrl` = `http://localhost:3001` (default; API port is exposed).
+    - **Docker (via Traefik only):** If you remove the API port mapping, use `baseUrl` = `https://localhost` and turn off SSL certificate verification in Postman.
+    - **Local dev (no Docker):** Run `npm run dev` and use `baseUrl` = `http://localhost:3001`.
+
+3. **Get a JWT**
+    - Run **Auth → Register** (or **Login** if the user exists).
+    - Copy the `token` from the response.
+    - In the collection, set variable **token** = that value (or use the collection’s “Set token from response” script if you add one).
+
+4. **Call protected endpoints**
+    - Use **Events → Create event (admin)**, **Venues → Create venue (admin)**, **Reservations → Reserve seats**, **Orders → Checkout**, etc. They use `Authorization: Bearer {{token}}` automatically.
+
+5. **Optional:** Turn off SSL certificate verification in Postman (Settings → General → SSL certificate verification) when using `https://localhost` with self-signed certs.
+
+---
+
+## Docker stack details
+
+- **HTTPS:** https://localhost → Traefik → API. HTTP on port 80 redirects to HTTPS.
+- **Load balancing:** `docker compose up -d --scale api=2` — Traefik round-robins between API instances.
+- **Env:** Set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and `JWT_SECRET` in `.env` or export them. For Stripe webhooks, use `https://your-domain/orders/webhook` (or a tunnel for local).
 
 **Stack:** Postgres, Redis (cache + BullMQ, `maxmemory 128mb`, `allkeys-lru`), Kafka (KRaft), Jaeger, API, Traefik (reverse proxy + TLS).
 
 ---
 
+## Project structure
+
+```
+src/
+├── cache/           # Redis cache (events), keys, interface
+├── config/          # Logger, security (CORS, rate limit, JWT)
+├── db/              # Drizzle DB client and schema
+├── dto/             # Request/response DTOs
+├── enums/           # Shared enums (order, seat, event status, etc.)
+├── errors/          # Domain errors (auth, events, orders, reservations, venues)
+├── infra/           # Infrastructure: Redis connection for BullMQ queues
+├── interfaces/      # Service and repository interfaces
+├── messaging/       # Async messaging
+│   ├── kafka/       # Kafka producer, consumer, config (payments)
+│   └── queues/      # BullMQ reservation queue and worker
+├── plugins/         # Fastify plugins (auth, requireAdmin)
+├── repositories/    # Data access (events, orders, reservations, user, venues)
+├── routes/          # HTTP routes (auth, events, orders, reservations, venues)
+├── services/        # Business logic
+├── app.ts           # Fastify app builder
+├── server.ts        # HTTP server entry
+└── tracing.ts       # OpenTelemetry tracing
+```
+
+---
+
 ## High throughput & resilience
 
-- **Orders / payments:** When `KAFKA_BROKERS` is set (e.g. in Docker), the Stripe webhook returns 200 immediately after enqueueing to Kafka. A consumer processes `payment.succeeded` with retries (default 3, exponential backoff); failed messages go to the **dead-letter topic** `payment.succeeded.dlq`. Without Kafka, the webhook processes synchronously (same as before).
-- **Events read path:** If `REDIS_URL` is set, GET /events and GET /events/:id use a **Redis cache** (cache-aside, TTL from `EVENTS_CACHE_TTL_SECONDS`). Creating an event invalidates the list cache. Redis is configured with `allkeys-lru` so high read load is handled with eviction.
+- **Orders / payments:** When `KAFKA_BROKERS` is set (e.g. in Docker), the Stripe webhook returns 200 immediately after enqueueing to Kafka. A consumer processes `payment.succeeded` with retries (default 3, exponential backoff); failed messages go to the **dead-letter topic** `payment.succeeded.dlq`. Without Kafka, the webhook processes synchronously.
+- **Events read path:** If `REDIS_URL` is set, GET /events and GET /events/:id use a **Redis cache** (cache-aside, TTL from `EVENTS_CACHE_TTL_SECONDS`). Creating an event invalidates the list cache. Redis uses `allkeys-lru` for eviction under load.
 
 ---
 

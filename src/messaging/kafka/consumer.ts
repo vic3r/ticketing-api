@@ -2,7 +2,7 @@ import { Kafka } from 'kafkajs';
 import type {
     IOrdersRepository,
     PaymentSucceededPayload,
-} from '../interfaces/orders.repository.interface.js';
+} from '../../interfaces/orders.repository.interface.js';
 import { getKafkaBrokers, TOPIC_PAYMENT_SUCCEEDED, TOPIC_PAYMENT_SUCCEEDED_DLQ } from './config.js';
 import { sendToDlq } from './producer.js';
 

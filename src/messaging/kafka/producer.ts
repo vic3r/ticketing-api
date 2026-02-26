@@ -1,5 +1,5 @@
 import { Kafka, type Producer } from 'kafkajs';
-import type { PaymentSucceededPayload } from '../interfaces/orders.repository.interface.js';
+import type { PaymentSucceededPayload } from '../../interfaces/orders.repository.interface.js';
 import { getKafkaBrokers, TOPIC_PAYMENT_SUCCEEDED, TOPIC_PAYMENT_SUCCEEDED_DLQ } from './config.js';
 
 let producer: Producer | null = null;

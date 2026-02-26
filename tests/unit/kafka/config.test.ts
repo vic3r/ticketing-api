@@ -4,7 +4,7 @@ import {
     isKafkaEnabled,
     TOPIC_PAYMENT_SUCCEEDED,
     TOPIC_PAYMENT_SUCCEEDED_DLQ,
-} from '../../../src/kafka/config.js';
+} from '../../../src/messaging/kafka/config.js';
 
 describe('Kafka config', () => {
     const origKafkaBrokers = process.env.KAFKA_BROKERS;

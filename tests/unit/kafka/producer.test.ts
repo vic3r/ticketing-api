@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createPaymentProducer, disconnectPaymentProducer } from '../../../src/kafka/producer.js';
+import {
+    createPaymentProducer,
+    disconnectPaymentProducer,
+} from '../../../src/messaging/kafka/producer.js';
 import type { PaymentSucceededPayload } from '../../../src/interfaces/orders.repository.interface.js';
 
 const kafkaMocks = vi.hoisted(() => ({

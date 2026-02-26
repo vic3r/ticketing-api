@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { processPaymentMessage } from '../../../src/kafka/consumer.js';
+import { processPaymentMessage } from '../../../src/messaging/kafka/consumer.js';
 import type {
     IOrdersRepository,
     PaymentSucceededPayload,
