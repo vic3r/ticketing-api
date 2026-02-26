@@ -1,0 +1,163 @@
+{
+    "info": {
+        "name": "Ticketing API",
+        "description": "Collection for Ticketing API endpoints. Set collection variables: baseUrl (e.g. http://localhost:3001), token (JWT from login).",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        { "key": "baseUrl", "value": "http://localhost:3001" },
+        { "key": "token", "value": "" }
+    ],
+    "item": [
+        {
+            "name": "Health",
+            "item": [
+                {
+                    "name": "GET Health",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": "{{baseUrl}}/health"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Auth",
+            "item": [
+                {
+                    "name": "Register",
+                    "request": {
+                        "method": "POST",
+                        "header": [{ "key": "Content-Type", "value": "application/json" }],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"alice@example.com\",\n  \"password\": \"secret123\",\n  \"name\": \"Alice\"\n}"
+                        },
+                        "url": "{{baseUrl}}/auth/register"
+                    }
+                },
+                {
+                    "name": "Login",
+                    "request": {
+                        "method": "POST",
+                        "header": [{ "key": "Content-Type", "value": "application/json" }],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"alice@example.com\",\n  \"password\": \"secret123\"\n}"
+                        },
+                        "url": "{{baseUrl}}/auth/login"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Events",
+            "item": [
+                {
+                    "name": "List published events",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": "{{baseUrl}}/events"
+                    }
+                },
+                {
+                    "name": "Get event by id",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": "{{baseUrl}}/events/{{eventId}}"
+                    }
+                },
+                {
+                    "name": "Create event (admin)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Content-Type", "value": "application/json" },
+                            { "key": "Authorization", "value": "Bearer {{token}}" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Summer Concert\",\n  \"venueId\": \"\",\n  \"organizerId\": \"\",\n  \"description\": \"Outdoor show\",\n  \"imageUrl\": null,\n  \"startDate\": \"2025-08-01T18:00:00.000Z\",\n  \"endDate\": \"2025-08-01T22:00:00.000Z\"\n}"
+                        },
+                        "url": "{{baseUrl}}/events"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Venues",
+            "item": [
+                {
+                    "name": "Create venue (admin)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Content-Type", "value": "application/json" },
+                            { "key": "Authorization", "value": "Bearer {{token}}" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Main Hall\",\n  \"address\": \"123 Main St\",\n  \"city\": \"City\",\n  \"state\": \"State\",\n  \"zip\": \"12345\",\n  \"country\": \"Country\",\n  \"description\": \"Main venue\"\n}"
+                        },
+                        "url": "{{baseUrl}}/venues"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Reservations",
+            "item": [
+                {
+                    "name": "Reserve seats",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Content-Type", "value": "application/json" },
+                            { "key": "Authorization", "value": "Bearer {{token}}" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"eventId\": \"\",\n  \"seatIds\": []\n}"
+                        },
+                        "url": "{{baseUrl}}/reservations"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Orders",
+            "item": [
+                {
+                    "name": "Checkout",
+                    "request": {
+                        "method": "POST",
+                        "header": [{ "key": "Content-Type", "value": "application/json" }],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"userId\": \"\",\n  \"eventId\": \"\",\n  \"seatIds\": [],\n  \"tierId\": \"\",\n  \"email\": \"alice@example.com\"\n}"
+                        },
+                        "url": "{{baseUrl}}/orders/checkout"
+                    }
+                },
+                {
+                    "name": "Webhook",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Content-Type", "value": "application/json" },
+                            { "key": "stripe-signature", "value": "" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"type\": \"payment_intent.succeeded\"\n}"
+                        },
+                        "url": "{{baseUrl}}/orders/webhook"
+                    }
+                }
+            ]
+        }
+    ]
+}

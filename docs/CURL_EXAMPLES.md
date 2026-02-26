@@ -2,6 +2,8 @@
 
 Replace `http://localhost:3001` if your API runs elsewhere. After login, set `TOKEN` and use it for protected routes.
 
+**Alternative:** Use the request collection in `api/`: **`api/ticketing-api.http`** (VS Code REST Client or Thunder Client, like .NET .http files) or **`api/ticketing-api.postman.json`** (import into Postman). See `api/README.md`.
+
 **Setup:** Run `npm run migrate`, then `npm run seed:admin` (set `ADMIN_EMAIL`, `ADMIN_PASSWORD`). Create a venue with `npm run seed:venue`, then `SEED_VENUE_ID=<id> npm run seed:seats`. Only admins can create events; creating an event with a `venueId` auto-populates event_seats from that venue’s seats.
 
 ---
@@ -81,6 +83,29 @@ curl -s -X POST http://localhost:3001/events \
     "endDate": "2025-08-01T22:00:00.000Z"
   }' | jq
 # 201: event object
+```
+
+---
+
+## Venues (admin only)
+
+Only users with role `admin` can create venues. Use the same admin token as for creating events.
+
+```bash
+# Create a venue (organizerId optional)
+curl -s -X POST http://localhost:3001/venues \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "name": "Main Hall",
+    "address": "123 Main St",
+    "city": "City",
+    "state": "State",
+    "zip": "12345",
+    "country": "Country",
+    "description": "Main venue"
+  }' | jq
+# 201: venue object (id, organizerId, name, address, city, state, zip, country, description, createdAt, updatedAt)
 ```
 
 ---

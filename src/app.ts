@@ -6,6 +6,8 @@ import rateLimit from '@fastify/rate-limit';
 import type { IAuthService } from './interfaces/auth.service.interface.js';
 import type { IEventsService } from './interfaces/events.service.interface.js';
 import type { IEventsRepository } from './interfaces/events.repository.interface.js';
+import type { IVenuesService } from './interfaces/venues.service.interface.js';
+import type { IVenuesRepository } from './interfaces/venues.repository.interface.js';
 import type { IUserRepository } from './interfaces/user.repository.interface.js';
 import type { IReservationService } from './interfaces/reservation.service.interface.js';
 import type { IOrdersService } from './interfaces/orders.service.interface.js';
@@ -27,8 +29,11 @@ import { createReservationRepository } from './repositories/reservation.reposito
 import { createReservationService } from './services/reservation.service.js';
 import { reservationsRoutes } from './routes/reservations.js';
 import { eventsRoutes } from './routes/events.js';
+import { venuesRoutes } from './routes/venues.js';
 import { createEventsService } from './services/events.service.js';
+import { createVenuesService } from './services/venues.service.js';
 import { eventsRepository } from './repositories/events.repository.js';
+import { venuesRepository } from './repositories/venues.repository.js';
 import { ordersRoutes } from './routes/orders.js';
 import { createOrdersService } from './services/orders.service.js';
 import { createOrdersRepository } from './repositories/orders.repository.js';
@@ -38,6 +43,8 @@ export interface AppDependencies {
     authService?: IAuthService;
     eventsRepository?: IEventsRepository;
     eventsService?: IEventsService;
+    venuesRepository?: IVenuesRepository;
+    venuesService?: IVenuesService;
     reservationService?: IReservationService;
     ordersService?: IOrdersService;
     /** Override for tests: global rate limit max (per window). */
@@ -116,6 +123,9 @@ export const buildApp = (deps?: AppDependencies) => {
     const eventsService =
         deps?.eventsService ?? createEventsService(deps?.eventsRepository ?? eventsRepository);
     app.register(eventsRoutes, { eventsService });
+    const venuesService =
+        deps?.venuesService ?? createVenuesService(deps?.venuesRepository ?? venuesRepository);
+    app.register(venuesRoutes, { venuesService });
     const reservationService =
         deps?.reservationService ??
         (() => {

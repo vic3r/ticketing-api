@@ -1,0 +1,123 @@
+# Ticketing API – REST Client / .http collection
+# Use in VS Code with "REST Client" (humao.rest-client) or "Thunder Client".
+# Set baseUrl and token below; run requests with "Send Request" above each block.
+#
+# After login, copy the token into the @token variable.
+
+@baseUrl = http://localhost:3001
+@token = your-jwt-token-here
+
+### Health
+GET {{baseUrl}}/health
+
+### --- Auth ---
+
+### Register
+# @name register
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "alice@example.com",
+  "password": "secret123",
+  "name": "Alice"
+}
+
+### Login (save token from response for later requests)
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "alice@example.com",
+  "password": "secret123"
+}
+
+### --- Events ---
+
+### List published events (no auth)
+GET {{baseUrl}}/events
+
+### Get event by id
+GET {{baseUrl}}/events/{{eventId}}
+
+### Create event (admin only)
+POST {{baseUrl}}/events
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Summer Concert",
+  "venueId": "your-venue-uuid",
+  "organizerId": "your-organizer-uuid",
+  "description": "Outdoor show",
+  "imageUrl": null,
+  "startDate": "2025-08-01T18:00:00.000Z",
+  "endDate": "2025-08-01T22:00:00.000Z"
+}
+
+### --- Venues ---
+
+### Create venue (admin only)
+POST {{baseUrl}}/venues
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Main Hall",
+  "address": "123 Main St",
+  "city": "City",
+  "state": "State",
+  "zip": "12345",
+  "country": "Country",
+  "description": "Main venue"
+}
+
+### Create venue without organizer (admin only)
+POST {{baseUrl}}/venues
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Arena",
+  "address": "456 Arena Blvd",
+  "city": "City",
+  "state": "State",
+  "zip": "67890",
+  "country": "Country"
+}
+
+### --- Reservations ---
+
+### Reserve seats (requires auth, valid eventId + seatIds)
+POST {{baseUrl}}/reservations
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "eventId": "your-event-uuid",
+  "seatIds": ["seat-uuid-1", "seat-uuid-2"]
+}
+
+### --- Orders ---
+
+### Checkout (create payment intent)
+POST {{baseUrl}}/orders/checkout
+Content-Type: application/json
+
+{
+  "userId": "your-user-uuid",
+  "eventId": "your-event-uuid",
+  "seatIds": ["seat-uuid-1"],
+  "tierId": "tier-uuid",
+  "email": "alice@example.com"
+}
+
+### Webhook (Stripe signature required)
+POST {{baseUrl}}/orders/webhook
+Content-Type: application/json
+stripe-signature: your-stripe-signature
+
+{
+  "type": "payment_intent.succeeded"
+}

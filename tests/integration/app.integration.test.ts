@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../../src/app.js';
 import type { IAuthService } from '../../src/interfaces/auth.service.interface.js';
 import type { IEventsService } from '../../src/interfaces/events.service.interface.js';
+import type { IVenuesService } from '../../src/interfaces/venues.service.interface.js';
 import type { IReservationService } from '../../src/interfaces/reservation.service.interface.js';
 import type { IOrdersService } from '../../src/interfaces/orders.service.interface.js';
 import {
@@ -16,6 +17,7 @@ describe('App integration', () => {
     let app: Awaited<ReturnType<typeof buildApp>>;
     let mockAuthService: IAuthService;
     let mockEventsService: IEventsService;
+    let mockVenuesService: IVenuesService;
     let mockReservationService: IReservationService;
     let mockOrdersService: IOrdersService;
 
@@ -29,6 +31,9 @@ describe('App integration', () => {
             findById: vi.fn(),
             create: vi.fn(),
         };
+        mockVenuesService = {
+            create: vi.fn(),
+        };
         mockReservationService = {
             lockSeatsForReservation: vi.fn(),
         };
@@ -39,6 +44,7 @@ describe('App integration', () => {
         app = buildApp({
             authService: mockAuthService,
             eventsService: mockEventsService,
+            venuesService: mockVenuesService,
             reservationService: mockReservationService,
             ordersService: mockOrdersService,
         });
@@ -179,6 +185,67 @@ describe('App integration', () => {
             });
             expect(res.statusCode).toBe(201);
             expect(res.json().name).toBe('Event');
+        });
+    });
+
+    describe('venues', () => {
+        it('POST /venues returns 201 with admin token', async () => {
+            const venue = {
+                id: 'v1',
+                organizerId: null,
+                name: 'Main Hall',
+                address: '123 Main St',
+                city: 'City',
+                state: 'State',
+                zip: '12345',
+                country: 'Country',
+                description: 'Main venue',
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            };
+            vi.mocked(mockVenuesService.create).mockResolvedValue(venue);
+            const token = app.jwt.sign(
+                { userId: 'a1', email: 'admin@example.com', role: 'admin' },
+                { expiresIn: '7d' }
+            );
+            const res = await app.inject({
+                method: 'POST',
+                url: '/venues',
+                payload: {
+                    name: 'Main Hall',
+                    address: '123 Main St',
+                    city: 'City',
+                    state: 'State',
+                    zip: '12345',
+                    country: 'Country',
+                    description: 'Main venue',
+                },
+                headers: { authorization: `Bearer ${token}` },
+            });
+            expect(res.statusCode).toBe(201);
+            expect(res.json().name).toBe('Main Hall');
+        });
+
+        it('POST /venues returns 403 with user token', async () => {
+            const token = app.jwt.sign(
+                { userId: 'u1', email: 'u@u.com', role: 'user' },
+                { expiresIn: '7d' }
+            );
+            const res = await app.inject({
+                method: 'POST',
+                url: '/venues',
+                payload: {
+                    name: 'Main Hall',
+                    address: '123 Main St',
+                    city: 'City',
+                    state: 'State',
+                    zip: '12345',
+                    country: 'Country',
+                },
+                headers: { authorization: `Bearer ${token}` },
+            });
+            expect(res.statusCode).toBe(403);
+            expect(res.json()).toMatchObject({ message: 'Admin access required' });
         });
     });
 
