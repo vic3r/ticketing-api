@@ -1,0 +1,17 @@
+# Static configuration for Traefik (reverse proxy + HTTPS).
+# Mount certs as ./certs/server.crt and ./certs/server.key (generate with: make certs)
+
+entryPoints:
+    web:
+        address: ':80'
+    websecure:
+        address: ':443'
+
+providers:
+    docker:
+        exposedByDefault: false
+    file:
+        filename: /etc/traefik/dynamic.yml
+
+api:
+    dashboard: true

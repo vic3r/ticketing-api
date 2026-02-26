@@ -11,7 +11,7 @@ describe('Venues routes', () => {
         mockVenuesService = {
             create: vi.fn(),
         };
-        app = buildApp({ venuesService: mockVenuesService });
+        app = await buildApp({ venuesService: mockVenuesService });
         await app.ready();
     });
 

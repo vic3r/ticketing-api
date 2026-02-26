@@ -11,7 +11,7 @@ describe('Reservations routes', () => {
         mockReservationService = {
             lockSeatsForReservation: vi.fn(),
         };
-        app = buildApp({ reservationService: mockReservationService });
+        app = await buildApp({ reservationService: mockReservationService });
         await app.ready();
     });
 

@@ -1,3 +1,7 @@
+# Ticketing API stack: Postgres, Redis (cache + queues), Kafka, Jaeger, API, Traefik (reverse proxy + HTTPS).
+# For load-balanced API: docker compose up -d --scale api=2
+# HTTPS uses self-signed certs in ./certs (generate with: make certs or see README).
+
 services:
     postgres:
         image: postgres:16
@@ -12,49 +16,106 @@ services:
             - postgres_data:/var/lib/postgresql/data
         healthcheck:
             test: ['CMD-SHELL', 'pg_isready -U postgres']
+
     redis:
         image: redis:7-alpine
         container_name: ticketing-redis
+        command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
         ports:
             - '6379:6379'
         healthcheck:
             test: ['CMD', 'redis-cli', 'ping']
+
+    kafka:
+        image: bitnami/kafka:3.7
+        container_name: ticketing-kafka
+        environment:
+            KAFKA_CFG_NODE_ID: 0
+            KAFKA_CFG_PROCESS_ROLES: controller,broker
+            KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+            KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+            KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+            KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+            KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 0@kafka:9093
+        ports:
+            - '9092:9092'
+        healthcheck:
+            test:
+                [
+                    'CMD-SHELL',
+                    '/opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list || true',
+                ]
+            interval: 10s
+            timeout: 10s
+            retries: 5
+            start_period: 15s
+
     jaeger:
         image: jaegertracing/all-in-one:latest
         container_name: ticketing-jaeger
         environment:
             COLLECTOR_OTLP_ENABLED: 'true'
         ports:
-            - '16686:16686' # Jaeger UI
-            - '4318:4318' # OTLP HTTP (traces from API)
+            - '16686:16686'
+            - '4318:4318'
+
     api:
         build:
             context: .
             dockerfile: Dockerfile
-        container_name: ticketing-api
-        ports:
-            - '3001:3001'
         environment:
-            - NODE_ENV=development
-            - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/ticketing
-            - REDIS_URL=redis://redis:6379
-            - JWT_SECRET=your-256-bit-secret-key-here-change-in-production-minimum-32-characters
-            - FRONTEND_URL=http://localhost:3000
-            # Stripe (use real keys for real payments; placeholder lets the server start)
-            - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-sk_test_fake}
-            - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-whsec_fake}
-            - LOG_LEVEL=info
-            # Tracing (Jaeger)
-            - OTEL_SERVICE_NAME=ticketing-api
-            - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
-            - OTEL_TRACES_EXPORTER=otlp
+            NODE_ENV: development
+            DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ticketing
+            REDIS_URL: redis://redis:6379
+            KAFKA_BROKERS: kafka:9092
+            JWT_SECRET: your-256-bit-secret-key-here-change-in-production-minimum-32-characters
+            FRONTEND_URL: https://localhost
+            STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-sk_test_fake}
+            STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-whsec_fake}
+            LOG_LEVEL: info
+            OTEL_SERVICE_NAME: ticketing-api
+            OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+            OTEL_TRACES_EXPORTER: otlp
+            EVENTS_CACHE_TTL_SECONDS: 60
         depends_on:
             postgres:
                 condition: service_healthy
             redis:
                 condition: service_healthy
+            kafka:
+                condition: service_healthy
             jaeger:
                 condition: service_started
+        labels:
+            - traefik.enable=true
+            - traefik.http.routers.api-https.rule=PathPrefix(`/`)
+            - traefik.http.routers.api-https.entrypoints=websecure
+            - traefik.http.routers.api-https.tls=true
+            - traefik.http.routers.api-https.service=api
+            - traefik.http.routers.api-http.rule=PathPrefix(`/`)
+            - traefik.http.routers.api-http.entrypoints=web
+            - traefik.http.routers.api-http.service=api
+            - traefik.http.routers.api-http.middlewares=redirect-to-https
+            - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+            - traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true
+            - traefik.http.services.api.loadbalancer.server.port=3001
+        networks:
+            - default
+
+    traefik:
+        image: traefik:v3.2
+        container_name: ticketing-traefik
+        command: --configFile=/etc/traefik/traefik.yml
+        ports:
+            - '80:80'
+            - '443:443'
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock:ro
+            - ./traefik.yml:/etc/traefik/traefik.yml:ro
+            - ./traefik-dynamic.yml:/etc/traefik/dynamic.yml:ro
+            - ./certs:/certs:ro
+        networks:
+            - default
 
 volumes:
     postgres_data:

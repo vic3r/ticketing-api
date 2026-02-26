@@ -41,7 +41,7 @@ describe('App integration', () => {
             checkOut: vi.fn(),
             handleWebhook: vi.fn(),
         };
-        app = buildApp({
+        app = await buildApp({
             authService: mockAuthService,
             eventsService: mockEventsService,
             venuesService: mockVenuesService,

@@ -11,6 +11,7 @@ import type { IVenuesRepository } from './interfaces/venues.repository.interface
 import type { IUserRepository } from './interfaces/user.repository.interface.js';
 import type { IReservationService } from './interfaces/reservation.service.interface.js';
 import type { IOrdersService } from './interfaces/orders.service.interface.js';
+import type { PaymentSucceededPayload } from './interfaces/orders.repository.interface.js';
 import {
     getCorsOrigin,
     rateLimit as rateLimitConfig,
@@ -30,6 +31,7 @@ import { createReservationService } from './services/reservation.service.js';
 import { reservationsRoutes } from './routes/reservations.js';
 import { eventsRoutes } from './routes/events.js';
 import { venuesRoutes } from './routes/venues.js';
+import { createRedisCache } from './cache/redis-cache.js';
 import { createEventsService } from './services/events.service.js';
 import { createVenuesService } from './services/venues.service.js';
 import { eventsRepository } from './repositories/events.repository.js';
@@ -37,6 +39,8 @@ import { venuesRepository } from './repositories/venues.repository.js';
 import { ordersRoutes } from './routes/orders.js';
 import { createOrdersService } from './services/orders.service.js';
 import { createOrdersRepository } from './repositories/orders.repository.js';
+import { createPaymentProducer } from './kafka/producer.js';
+import { isKafkaEnabled } from './kafka/config.js';
 
 export interface AppDependencies {
     userRepository?: IUserRepository;
@@ -47,6 +51,8 @@ export interface AppDependencies {
     venuesService?: IVenuesService;
     reservationService?: IReservationService;
     ordersService?: IOrdersService;
+    /** When provided (e.g. Kafka), webhook produces to queue instead of processing inline. */
+    paymentProducer?: ((payload: PaymentSucceededPayload) => Promise<void>) | null;
     /** Override for tests: global rate limit max (per window). */
     rateLimitMax?: number;
     /** Override for tests: auth route rate limit max. */
@@ -55,7 +61,7 @@ export interface AppDependencies {
     rateLimitKeyGenerator?: (req: FastifyRequest) => string;
 }
 
-export const buildApp = (deps?: AppDependencies) => {
+export const buildApp = async (deps?: AppDependencies) => {
     const app = Fastify({
         bodyLimit,
         logger: loggerOptions,
@@ -120,8 +126,13 @@ export const buildApp = (deps?: AppDependencies) => {
         authRateLimitMax: authMax,
         authRateLimitTimeWindowMs: authRateLimitConfig.timeWindowMs,
     });
+    const eventsCache =
+        process.env.REDIS_URL && !deps?.eventsService
+            ? createRedisCache(process.env.REDIS_URL, { keyPrefix: 'ticketing:cache:' })
+            : null;
     const eventsService =
-        deps?.eventsService ?? createEventsService(deps?.eventsRepository ?? eventsRepository);
+        deps?.eventsService ??
+        createEventsService(deps?.eventsRepository ?? eventsRepository, eventsCache);
     app.register(eventsRoutes, { eventsService });
     const venuesService =
         deps?.venuesService ?? createVenuesService(deps?.venuesRepository ?? venuesRepository);
@@ -134,10 +145,19 @@ export const buildApp = (deps?: AppDependencies) => {
             const reservationRepository = createReservationRepository(reservationQueue);
             return createReservationService(reservationRepository);
         })();
-    const ordersService =
-        deps?.ordersService ?? (() => createOrdersService(createOrdersRepository()))();
+    const paymentProducer =
+        deps?.paymentProducer ?? (isKafkaEnabled() ? await createPaymentProducer() : null);
+    const ordersRepository = createOrdersRepository({ paymentProducer });
+    const ordersService = deps?.ordersService ?? createOrdersService(ordersRepository);
     app.register(reservationsRoutes, { reservationService });
     app.register(ordersRoutes, { ordersService });
+
+    if (paymentProducer) {
+        app.addHook('onReady', async () => {
+            const { startPaymentSucceededConsumer } = await import('./kafka/consumer.js');
+            await startPaymentSucceededConsumer(ordersRepository);
+        });
+    }
 
     return app;
 };

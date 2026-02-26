@@ -32,3 +32,6 @@ coverage/
 # Optional
 .cache/
 .turbo/
+
+# Local TLS certs (self-signed)
+certs/

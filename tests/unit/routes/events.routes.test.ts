@@ -14,7 +14,7 @@ describe('Events routes', () => {
             findById: vi.fn(),
             create: vi.fn(),
         };
-        app = buildApp({ eventsService: mockEventsService });
+        app = await buildApp({ eventsService: mockEventsService });
         await app.ready();
     });
 

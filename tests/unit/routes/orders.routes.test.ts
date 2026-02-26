@@ -16,7 +16,7 @@ describe('Orders routes', () => {
             checkOut: vi.fn(),
             handleWebhook: vi.fn(),
         };
-        app = buildApp({ ordersService: mockOrdersService });
+        app = await buildApp({ ordersService: mockOrdersService });
         await app.ready();
     });
 

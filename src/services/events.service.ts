@@ -1,3 +1,5 @@
+import { EVENTS_LIST_KEY, eventByIdKey } from '../cache/events-cache.keys.js';
+import type { ICache } from '../cache/cache.interface.js';
 import { EventStatus, type EventStatusValue } from '../enums/event-status.js';
 import type { EventRequest, EventResponse } from '../dto/events.dto.js';
 import type { IEventsRepository } from '../interfaces/events.repository.interface.js';
@@ -37,19 +39,37 @@ function toEventResponse(record: {
     };
 }
 
-export function createEventsService(eventsRepository: IEventsRepository): IEventsService {
+const EVENTS_CACHE_TTL_SECONDS = Number(process.env.EVENTS_CACHE_TTL_SECONDS) || 60;
+
+export function createEventsService(
+    eventsRepository: IEventsRepository,
+    cache?: ICache | null
+): IEventsService {
     return {
         async findAllPublished(): Promise<EventResponse[]> {
+            if (cache) {
+                const cached = await cache.get<EventResponse[]>(EVENTS_LIST_KEY);
+                if (cached != null) return cached;
+            }
             const records = await eventsRepository.findAllPublished();
-            return records.map(toEventResponse);
+            const list = records.map(toEventResponse);
+            if (cache) await cache.set(EVENTS_LIST_KEY, list, EVENTS_CACHE_TTL_SECONDS);
+            return list;
         },
         async findById(id: string): Promise<EventResponse | null> {
+            if (cache) {
+                const cached = await cache.get<EventResponse>(eventByIdKey(id));
+                if (cached != null) return cached;
+            }
             const record = await eventsRepository.findById(id);
             if (!record) return null;
-            return toEventResponse(record);
+            const response = toEventResponse(record);
+            if (cache) await cache.set(eventByIdKey(id), response, EVENTS_CACHE_TTL_SECONDS);
+            return response;
         },
         async create(event: EventRequest): Promise<EventResponse> {
             const record = await eventsRepository.create(event);
+            if (cache) await cache.del(EVENTS_LIST_KEY);
             return toEventResponse(record);
         },
     };

@@ -4,7 +4,7 @@ import { buildApp } from './app.js';
 
 initTracing();
 
-const app = buildApp();
+const app = await buildApp();
 
 app.listen({ port: 3001, host: '0.0.0.0' }, (err: Error | null, address: string) => {
     if (err) {

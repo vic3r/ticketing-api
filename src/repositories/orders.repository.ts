@@ -16,7 +16,10 @@ import type {
     OrderRequest,
     WebhookHandledResponse,
 } from '../dto/orders.dto.js';
-import type { IOrdersRepository } from '../interfaces/orders.repository.interface.js';
+import type {
+    IOrdersRepository,
+    PaymentSucceededPayload,
+} from '../interfaces/orders.repository.interface.js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
     apiVersion: '2026-01-28.clover',
@@ -162,9 +165,45 @@ function constructStripeWebhookEvent(
     return stripe.webhooks.constructEvent(payload, signature, secret);
 }
 
+// --- Process payment (used synchronously or by Kafka consumer) ---
+
+async function doProcessPaymentSucceeded(payload: PaymentSucceededPayload): Promise<void> {
+    const { paymentIntentId, eventId, seatIds } = payload;
+    await markOrderPaidByPaymentIntentId(paymentIntentId);
+    await markEventSeatsSold(eventId, seatIds);
+
+    const order = await findOrderByPaymentIntentId(paymentIntentId);
+    if (!order) return;
+
+    const seatsForTickets = await findSeatsByIds(seatIds);
+    for (const seat of seatsForTickets) {
+        if (!seat.ticketTierId) continue;
+        const qrPayload = generateTicketQrPayload({
+            ticketId: crypto.randomUUID(),
+            userId: payload.userId,
+            eventId,
+            seatId: seat.id,
+        });
+        await insertTicket({
+            orderId: order.id,
+            userId: payload.userId,
+            eventId,
+            seatId: seat.id,
+            ticketTierId: seat.ticketTierId,
+            qrPayload,
+        });
+    }
+}
+
 // --- Repository implementation ---
 
-export const createOrdersRepository = (): IOrdersRepository => {
+export type PaymentProducer = (payload: PaymentSucceededPayload) => Promise<void>;
+
+export const createOrdersRepository = (options?: {
+    paymentProducer?: PaymentProducer | null;
+}): IOrdersRepository => {
+    const paymentProducer = options?.paymentProducer ?? null;
+
     return {
         async create(input: OrderRequest): Promise<CreateOrderResponse> {
             const { eventId, userId, seatIds, email } = input;
@@ -228,34 +267,24 @@ export const createOrdersRepository = (): IOrdersRepository => {
                 return { received: true };
             }
 
-            await markOrderPaidByPaymentIntentId(intent.id);
-            await markEventSeatsSold(eventId, seatIds);
+            const paymentPayload: PaymentSucceededPayload = {
+                paymentIntentId: intent.id,
+                userId: String(userId),
+                eventId: String(eventId),
+                seatIds,
+            };
 
-            const order = await findOrderByPaymentIntentId(intent.id);
-            if (!order) {
+            if (paymentProducer) {
+                await paymentProducer(paymentPayload);
                 return { received: true };
             }
 
-            const seatsForTickets = await findSeatsByIds(seatIds);
-            for (const seat of seatsForTickets) {
-                if (!seat.ticketTierId) continue;
-                const qrPayload = generateTicketQrPayload({
-                    ticketId: crypto.randomUUID(),
-                    userId,
-                    eventId,
-                    seatId: seat.id,
-                });
-                await insertTicket({
-                    orderId: order.id,
-                    userId,
-                    eventId,
-                    seatId: seat.id,
-                    ticketTierId: seat.ticketTierId,
-                    qrPayload,
-                });
-            }
-
+            await doProcessPaymentSucceeded(paymentPayload);
             return { received: true };
+        },
+
+        async processPaymentSucceeded(payload: PaymentSucceededPayload): Promise<void> {
+            await doProcessPaymentSucceeded(payload);
         },
     };
 };

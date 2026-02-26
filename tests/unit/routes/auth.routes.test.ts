@@ -15,7 +15,7 @@ describe('Auth routes', () => {
             register: vi.fn(),
             login: vi.fn(),
         };
-        app = buildApp({ authService: mockAuthService });
+        app = await buildApp({ authService: mockAuthService });
         await app.ready();
     });
 

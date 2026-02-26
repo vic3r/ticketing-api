@@ -25,7 +25,7 @@ describe('Security', () => {
     let app: Awaited<ReturnType<typeof buildApp>>;
 
     beforeAll(async () => {
-        app = buildApp({
+        app = await buildApp({
             authService: mockAuth,
             eventsService: mockEvents,
             reservationService: mockReservation,
@@ -40,7 +40,7 @@ describe('Security', () => {
 
     describe('Rate limiting', () => {
         it('returns 429 when global rate limit exceeded', async () => {
-            const limitedApp = buildApp({
+            const limitedApp = await buildApp({
                 authService: mockAuth,
                 eventsService: mockEvents,
                 reservationService: mockReservation,
@@ -72,7 +72,7 @@ describe('Security', () => {
                 email: 'u@example.com',
                 name: 'User',
             });
-            const limitedApp = buildApp({
+            const limitedApp = await buildApp({
                 authService: mockAuth,
                 eventsService: mockEvents,
                 reservationService: mockReservation,
@@ -157,7 +157,7 @@ describe('Security', () => {
             const orig = process.env.NODE_ENV;
             process.env.NODE_ENV = 'production';
 
-            const prodApp = buildApp({
+            const prodApp = await buildApp({
                 authService: {
                     register: vi.fn().mockRejectedValue(new Error('Internal DB failure')),
                     login: vi.fn(),

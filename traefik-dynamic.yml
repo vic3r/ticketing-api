@@ -1,0 +1,5 @@
+# Dynamic TLS config: default cert for HTTPS (self-signed in ./certs).
+tls:
+    certificates:
+        - certFile: /certs/server.crt
+          keyFile: /certs/server.key
