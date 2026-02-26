@@ -140,3 +140,16 @@ npx husky
 ```
 
 To skip hooks for a single commit or push: `git commit --no-verify` or `git push --no-verify`.
+
+---
+
+## CI and branch protection
+
+Develop in a branch and open **pull requests against `main`**. GitHub Actions (`.github/workflows/ci.yml` at the repo root) runs on every push to `main` and on every pull request targeting `main`. It must pass before you merge:
+
+- **Format check** (`npm run format:check`)
+- **Lint** (`npm run lint`)
+- **Tests** (`npm run test`)
+- **Build** (`npm run build`)
+
+To **require this check before merging**: Repo → **Settings** → **Branches** → **Add branch protection rule** for `main` → enable **Require status checks to pass before merging** and select **Lint, test & build**.
