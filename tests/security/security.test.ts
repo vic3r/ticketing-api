@@ -71,6 +71,7 @@ describe('Security', () => {
                 id: 'u1',
                 email: 'u@example.com',
                 name: 'User',
+                role: 'user',
             });
             const limitedApp = await buildApp({
                 authService: mockAuth,
