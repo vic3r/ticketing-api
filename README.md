@@ -76,9 +76,17 @@ Run the entire stack (API, Postgres, Redis, Kafka, Jaeger, Traefik) in one comma
 
 ## Monitoring & SPM (Jaeger)
 
-- **Traces:** The API sends OpenTelemetry traces to Jaeger when `OTEL_EXPORTER_OTLP_ENDPOINT` is set (e.g. `http://jaeger:4318` in Docker). Open **http://localhost:16686** to use the Jaeger UI.
-- **Jaeger Monitor (trace-based SPM):** In Jaeger, open **Monitor** and select the service `ticketing-api` to see request rate, latency percentiles, and error rate derived from traces.
-- **OTLP metrics (SPM):** When `OTEL_METRICS_EXPORTER=otlp` and `OTEL_EXPORTER_OTLP_ENDPOINT` are set, the API also exports **Service Performance Monitoring** metrics (`http.server.request.duration`, `http.server.request.count`) to the same OTLP endpoint. Jaeger all-in-one accepts OTLP; for full metrics dashboards you can use an [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) to receive both traces and metrics and forward metrics to Prometheus/Grafana if needed.
+The stack uses **Jaeger v2** with the **Monitor** tab enabled (Service Performance Monitoring).
+
+- **Traces:** The API sends OpenTelemetry traces to Jaeger at `http://jaeger:4318`. Open **http://localhost:16686** for the Jaeger UI.
+- **Monitor tab (SPM):** In the Jaeger UI, open **Monitor** to see RED metrics (Request rate, Error rate, Duration) per service and operation. This is powered by:
+    - **SpanMetrics connector** inside Jaeger: derives RED metrics from spans.
+    - **Prometheus:** scrapes Jaeger’s metrics endpoint (`:8889`) and is used by Jaeger Query for the Monitor tab.
+- **Config files:** Under `monitor/`:
+    - `jaeger-config-spm.yaml` – Jaeger v2 pipeline (OTLP → batch → memory + spanmetrics, Prometheus exporter on :8889).
+    - `jaeger-ui.json` – UI flags (`monitor.menuEnabled: true`).
+    - `prometheus.yml` – Scrape config for `jaeger:8889`.
+- **App metrics:** The API also exports OTLP metrics (`http.server.request.duration`, `http.server.request.count`) when `OTEL_METRICS_EXPORTER=otlp`; these can be consumed by an OpenTelemetry Collector or other backends if you add one.
 
 ---
 

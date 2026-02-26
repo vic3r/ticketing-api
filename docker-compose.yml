@@ -85,14 +85,36 @@ services:
             kafka-topics --create --bootstrap-server kafka:29092 --topic payment.succeeded.dlq --partitions 1 --replication-factor 1 --if-not-exists
             "
 
+    # Prometheus scrapes Jaeger's spanmetrics endpoint (8889) for the Monitor tab. Must start before Jaeger.
+    prometheus:
+        image: prom/prometheus:v3.2.0
+        container_name: ticketing-prometheus
+        volumes:
+            - ./monitor/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+        ports:
+            - '9090:9090'
+        command:
+            - '--config.file=/etc/prometheus/prometheus.yml'
+            - '--storage.tsdb.path=/prometheus'
+            - '--web.enable-lifecycle'
+
+    # Jaeger v2 with SPM (Monitor tab): spanmetrics connector + Prometheus for RED metrics.
     jaeger:
-        image: jaegertracing/all-in-one:latest
+        image: jaegertracing/jaeger:2.15.1
         container_name: ticketing-jaeger
-        environment:
-            COLLECTOR_OTLP_ENABLED: 'true'
+        command: ['--config', '/etc/jaeger/config.yml']
+        volumes:
+            - ./monitor/jaeger-config-spm.yaml:/etc/jaeger/config.yml:ro
+            - ./monitor/jaeger-ui.json:/etc/jaeger/jaeger-ui.json:ro
         ports:
             - '16686:16686'
+            - '4317:4317'
             - '4318:4318'
+            - '8888:8888'
+            - '8889:8889'
+        depends_on:
+            prometheus:
+                condition: service_started
 
     api:
         build:
