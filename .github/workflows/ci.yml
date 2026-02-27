@@ -1,5 +1,5 @@
 # CI: lint, test, and build must pass before merging into main.
-# Develop in branches; open PRs against main. Enable branch protection to require this check.
+# Develop in branches; open PRs against main. Repo root = ticketing-api.
 
 name: CI
 
@@ -8,10 +8,6 @@ on:
         branches: [main]
     pull_request:
         branches: [main]
-
-defaults:
-    run:
-        working-directory: ticketing-api
 
 jobs:
     lint-test-build:
@@ -26,7 +22,7 @@ jobs:
               with:
                   node-version: '20'
                   cache: 'npm'
-                  cache-dependency-path: ticketing-api/package-lock.json
+                  cache-dependency-path: package-lock.json
 
             - name: Install dependencies
               run: npm ci

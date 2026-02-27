@@ -153,3 +153,5 @@ Develop in a branch and open **pull requests against `main`**. GitHub Actions (`
 - **Build** (`npm run build`)
 
 To **require this check before merging**: Repo → **Settings** → **Branches** → **Add branch protection rule** for `main` → enable **Require status checks to pass before merging** and select **Lint, test & build**.
+
+For **PR workflow and draft PR standard**, see [CONTRIBUTING.md](CONTRIBUTING.md).
