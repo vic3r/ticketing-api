@@ -157,7 +157,10 @@ describe('Security', () => {
     describe('Error handling in production', () => {
         it('returns generic message on 500 when NODE_ENV=production', async () => {
             const orig = process.env.NODE_ENV;
-            process.env.NODE_ENV = 'production';
+            Object.defineProperty(process, 'env', {
+                value: { ...process.env, NODE_ENV: 'production' },
+                writable: true,
+            });
 
             const prodApp = await buildApp({
                 authService: {
@@ -180,7 +183,10 @@ describe('Security', () => {
             expect(res.json().message).not.toContain('DB');
 
             await prodApp.close();
-            process.env.NODE_ENV = orig;
+            Object.defineProperty(process, 'env', {
+                value: { ...process.env, NODE_ENV: orig },
+                writable: true,
+            });
         });
     });
 });
