@@ -88,6 +88,8 @@ The stack uses **Jaeger v2** with the **Monitor** tab enabled (Service Performan
     - `prometheus.yml` – Scrape config for `jaeger:8889`.
 - **App metrics:** The API also exports OTLP metrics (`http.server.request.duration`, `http.server.request.count`) when `OTEL_METRICS_EXPORTER=otlp`; these can be consumed by an OpenTelemetry Collector or other backends if you add one.
 
+**If the Monitor tab shows “No data”:** Metrics are derived from spans by the SpanMetrics connector and flushed every 15s, then scraped by Prometheus. After sending traffic to the API, wait **1–2 minutes**, ensure the Monitor time range (e.g. “Last 15 minutes”) includes that period, and select service **ticketing-api** and span kind **Server**. To confirm metrics exist, open Prometheus at **http://localhost:9090** and run: `traces_spanmetrics_calls_total` or `traces_span_metrics_calls_total` (depending on connector version).
+
 ---
 
 ## Project structure
@@ -138,3 +140,18 @@ npx husky
 ```
 
 To skip hooks for a single commit or push: `git commit --no-verify` or `git push --no-verify`.
+
+---
+
+## CI and branch protection
+
+Develop in a branch and open **pull requests against `main`**. GitHub Actions (`.github/workflows/ci.yml` at the repo root) runs on every push to `main` and on every pull request targeting `main`. It must pass before you merge:
+
+- **Format check** (`npm run format:check`)
+- **Lint** (`npm run lint`)
+- **Tests** (`npm run test`)
+- **Build** (`npm run build`)
+
+To **require this check before merging**: Repo → **Settings** → **Branches** → **Add branch protection rule** for `main` → enable **Require status checks to pass before merging** and select **Lint, test & build**.
+
+For **PR workflow and draft PR standard**, see [CONTRIBUTING.md](CONTRIBUTING.md).
