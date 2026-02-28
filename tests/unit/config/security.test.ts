@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+/// <reference types="node" />
+import { afterEach, describe, expect, it } from 'vitest';
 import {
     getCorsOrigin,
     getPublic500Message,
@@ -20,19 +21,32 @@ describe('Security config', () => {
             expect(getCorsOrigin()).toBe(true);
         });
 
-        it('returns single URL when FRONTEND_URL is one origin', () => {
+        it('returns single URL when FRONTEND_URL is one origin (production)', () => {
+            process.env.NODE_ENV = 'production';
             process.env.FRONTEND_URL = 'https://app.example.com';
             expect(getCorsOrigin()).toBe('https://app.example.com');
         });
 
-        it('returns array when FRONTEND_URL contains comma', () => {
+        it('returns array when FRONTEND_URL contains comma (production)', () => {
+            process.env.NODE_ENV = 'production';
             process.env.FRONTEND_URL = 'https://a.com,https://b.com';
             expect(getCorsOrigin()).toEqual(['https://a.com', 'https://b.com']);
         });
 
-        it('trims and filters empty when multiple URLs', () => {
+        it('trims and filters empty when multiple URLs (production)', () => {
+            process.env.NODE_ENV = 'production';
             process.env.FRONTEND_URL = ' https://a.com , https://b.com , ';
             expect(getCorsOrigin()).toEqual(['https://a.com', 'https://b.com']);
+        });
+
+        it('includes localhost:3002 and 3000 in development when FRONTEND_URL is set', () => {
+            process.env.NODE_ENV = 'development';
+            process.env.FRONTEND_URL = 'https://app.example.com';
+            const result = getCorsOrigin();
+            expect(Array.isArray(result)).toBe(true);
+            expect(result).toContain('https://app.example.com');
+            expect(result).toContain('http://localhost:3002');
+            expect(result).toContain('http://localhost:3000');
         });
     });
 

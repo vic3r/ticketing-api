@@ -126,7 +126,7 @@ services:
             REDIS_URL: redis://redis:6379
             KAFKA_BROKERS: kafka:29092
             JWT_SECRET: your-256-bit-secret-key-here-change-in-production-minimum-32-characters
-            FRONTEND_URL: https://localhost
+            FRONTEND_URL: http://localhost:3002
             STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-sk_test_fake}
             STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-whsec_fake}
             LOG_LEVEL: info

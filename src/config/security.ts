@@ -10,16 +10,28 @@
 const env = process.env;
 const isProd = env.NODE_ENV === 'production';
 
-/** Allowed CORS origins. In prod use allowlist; in dev allow frontend or true. */
+const DEV_UI_ORIGINS = ['http://localhost:3002', 'http://localhost:3000'];
+
+/** Allowed CORS origins. In prod use allowlist; in dev allow frontend + localhost UI ports. */
 export function getCorsOrigin(): string | boolean | string[] {
-    const url = env.FRONTEND_URL;
-    if (!url) return true;
-    if (url.includes(','))
-        return url
-            .split(',')
-            .map((u) => u.trim())
-            .filter(Boolean);
-    return url;
+    const url = (env.FRONTEND_URL ?? '').trim();
+    const isProdEnv = env.NODE_ENV === 'production';
+
+    if (!url) return true; // no allowlist: allow all (set FRONTEND_URL in prod to restrict)
+
+    const fromEnv = url.includes(',')
+        ? url
+              .split(',')
+              .map((u) => u.trim())
+              .filter(Boolean)
+        : [url];
+
+    // In development, always allow local UI origins so 3002/3000 work without configuring FRONTEND_URL
+    if (!isProdEnv) {
+        const combined = [...new Set([...fromEnv, ...DEV_UI_ORIGINS])];
+        return combined.length === 1 ? (combined[0] as string) : combined;
+    }
+    return fromEnv.length === 1 ? (fromEnv[0] as string) : fromEnv;
 }
 
 /** Global rate limit: max requests per window (per IP). */
