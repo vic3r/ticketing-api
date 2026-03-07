@@ -40,6 +40,14 @@ export function createVenuesService(venuesRepository: IVenuesRepository): IVenue
             const record = await venuesRepository.create(input);
             return toVenueResponse(record);
         },
+        async findAll(): Promise<VenueResponse[]> {
+            const records = await venuesRepository.findAll();
+            return records.map(toVenueResponse);
+        },
+        async findById(id: string): Promise<VenueResponse | null> {
+            const record = await venuesRepository.findById(id);
+            return record ? toVenueResponse(record) : null;
+        },
         async addSeats(venueId: string, body: AddSeatsRequest): Promise<{ count: number }> {
             const seats = body.seats ?? [];
             const count = await venuesRepository.addSeats(venueId, seats);

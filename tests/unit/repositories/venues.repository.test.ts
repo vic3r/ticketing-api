@@ -4,6 +4,8 @@ import { VenueCreationFailedError } from '../../../src/errors/venues.errors.js';
 
 const mocks = vi.hoisted(() => ({
     mockReturning: vi.fn(),
+    mockOrderBy: vi.fn(),
+    mockLimit: vi.fn(),
 }));
 
 const insertThenable = {
@@ -13,6 +15,12 @@ const insertThenable = {
 
 vi.mock('../../../src/db/index.js', () => ({
     db: {
+        select: () => ({
+            from: () => ({
+                orderBy: () => mocks.mockOrderBy(),
+                where: () => ({ limit: () => mocks.mockLimit() }),
+            }),
+        }),
         insert: () => ({
             values: (v: unknown) => ({
                 returning: () => mocks.mockReturning(),
@@ -31,6 +39,85 @@ describe('Venues repository', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mocks.mockReturning.mockResolvedValue([]);
+        mocks.mockOrderBy.mockResolvedValue([]);
+        mocks.mockLimit.mockResolvedValue([]);
+    });
+
+    describe('findAll', () => {
+        it('returns all venues ordered by name', async () => {
+            const rows = [
+                {
+                    id: 'v1',
+                    organizerId: null,
+                    name: 'Arena',
+                    address: '1 St',
+                    city: 'City',
+                    state: 'ST',
+                    zip: '123',
+                    country: 'US',
+                    description: null,
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                },
+                {
+                    id: 'v2',
+                    organizerId: null,
+                    name: 'Hall',
+                    address: '2 St',
+                    city: 'Town',
+                    state: 'ST',
+                    zip: '456',
+                    country: 'US',
+                    description: null,
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                },
+            ];
+            mocks.mockOrderBy.mockResolvedValueOnce(rows);
+
+            const result = await venuesRepository.findAll();
+
+            expect(result).toEqual(rows);
+        });
+
+        it('returns empty array when no venues', async () => {
+            mocks.mockOrderBy.mockResolvedValueOnce([]);
+
+            const result = await venuesRepository.findAll();
+
+            expect(result).toEqual([]);
+        });
+    });
+
+    describe('findById', () => {
+        it('returns venue when found', async () => {
+            const venue = {
+                id: 'v1',
+                organizerId: null,
+                name: 'Main Hall',
+                address: '123 Main',
+                city: 'City',
+                state: 'ST',
+                zip: '12345',
+                country: 'US',
+                description: null,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            };
+            mocks.mockLimit.mockResolvedValueOnce([venue]);
+
+            const result = await venuesRepository.findById('v1');
+
+            expect(result).toEqual(venue);
+        });
+
+        it('returns null when not found', async () => {
+            mocks.mockLimit.mockResolvedValueOnce([]);
+
+            const result = await venuesRepository.findById('bad');
+
+            expect(result).toBeNull();
+        });
     });
 
     it('create returns record when insert succeeds', async () => {

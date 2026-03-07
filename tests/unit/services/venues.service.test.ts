@@ -8,8 +8,77 @@ describe('VenuesService', () => {
     beforeEach(() => {
         mockVenuesRepository = {
             create: vi.fn(),
+            findAll: vi.fn(),
+            findById: vi.fn(),
             addSeats: vi.fn(),
         };
+    });
+
+    describe('findAll', () => {
+        it('returns mapped list of venues', async () => {
+            const rows = [
+                {
+                    id: 'v1',
+                    organizerId: null,
+                    name: 'Arena',
+                    address: '1 St',
+                    city: 'City',
+                    state: 'ST',
+                    zip: '123',
+                    country: 'US',
+                    description: null,
+                    createdAt: new Date('2025-01-01'),
+                    updatedAt: new Date('2025-01-01'),
+                },
+            ];
+            vi.mocked(mockVenuesRepository.findAll).mockResolvedValue(rows);
+            const service = createVenuesService(mockVenuesRepository);
+            const result = await service.findAll();
+            expect(result).toHaveLength(1);
+            expect(result[0].id).toBe('v1');
+            expect(result[0].name).toBe('Arena');
+            expect(result[0].createdAt).toBeInstanceOf(Date);
+        });
+
+        it('returns empty array when no venues', async () => {
+            vi.mocked(mockVenuesRepository.findAll).mockResolvedValue([]);
+            const service = createVenuesService(mockVenuesRepository);
+            const result = await service.findAll();
+            expect(result).toEqual([]);
+        });
+    });
+
+    describe('findById', () => {
+        it('returns mapped venue when found', async () => {
+            const row = {
+                id: 'v1',
+                organizerId: null,
+                name: 'Hall',
+                address: '2 St',
+                city: 'Town',
+                state: 'ST',
+                zip: '456',
+                country: 'US',
+                description: 'Nice',
+                createdAt: new Date('2025-02-01'),
+                updatedAt: new Date('2025-02-01'),
+            };
+            vi.mocked(mockVenuesRepository.findById).mockResolvedValue(row);
+            const service = createVenuesService(mockVenuesRepository);
+            const result = await service.findById('v1');
+            expect(result).not.toBeNull();
+            expect(result!.id).toBe('v1');
+            expect(result!.name).toBe('Hall');
+            expect(result!.description).toBe('Nice');
+            expect(result!.createdAt).toBeInstanceOf(Date);
+        });
+
+        it('returns null when not found', async () => {
+            vi.mocked(mockVenuesRepository.findById).mockResolvedValue(null);
+            const service = createVenuesService(mockVenuesRepository);
+            const result = await service.findById('bad');
+            expect(result).toBeNull();
+        });
     });
 
     it('create returns mapped venue (happy path)', async () => {

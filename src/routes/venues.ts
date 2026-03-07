@@ -13,6 +13,18 @@ interface VenuesRoutesOptions {
 export async function venuesRoutes(app: FastifyInstance, opts: VenuesRoutesOptions) {
     const { venuesService } = opts;
 
+    app.get('/venues', async (_request, reply) => {
+        const list = await venuesService.findAll();
+        return reply.status(200).send(list);
+    });
+
+    app.get('/venues/:venueId', async (request, reply) => {
+        const { venueId } = request.params as { venueId: string };
+        const venue = await venuesService.findById(venueId);
+        if (!venue) return reply.status(404).send({ message: 'Venue not found' });
+        return reply.status(200).send(venue);
+    });
+
     app.post(
         '/venues/:venueId/seats',
         { preHandler: [authenticate, requireAdmin] },

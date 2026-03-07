@@ -21,7 +21,7 @@ export interface EventResponse {
 
 export interface EventRequest {
     venueId: string;
-    organizerId: string;
+    organizerId: string | null;
     name: string;
     description: string | null;
     imageUrl: string | null;

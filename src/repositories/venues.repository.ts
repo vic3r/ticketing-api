@@ -1,10 +1,18 @@
 import { db } from '../db/index.js';
 import { seats, venues } from '../db/schema.js';
+import { asc, eq } from 'drizzle-orm';
 import { VenueCreationFailedError } from '../errors/venues.errors.js';
 import type { IVenuesRepository } from '../interfaces/venues.repository.interface.js';
 import type { SeatInput, VenueRequest } from '../dto/venues.dto.js';
 
 export const venuesRepository: IVenuesRepository = {
+    async findAll() {
+        return db.select().from(venues).orderBy(asc(venues.name));
+    },
+    async findById(id: string) {
+        const rows = await db.select().from(venues).where(eq(venues.id, id)).limit(1);
+        return rows[0] ?? null;
+    },
     async create(input: VenueRequest) {
         const [record] = await db
             .insert(venues)

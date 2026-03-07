@@ -10,6 +10,8 @@ describe('Venues routes', () => {
     beforeEach(async () => {
         mockVenuesService = {
             create: vi.fn(),
+            findAll: vi.fn(),
+            findById: vi.fn(),
             addSeats: vi.fn(),
         };
         app = await buildApp({ venuesService: mockVenuesService });
@@ -19,6 +21,69 @@ describe('Venues routes', () => {
     afterEach(async () => {
         await app.close();
         vi.clearAllMocks();
+    });
+
+    describe('GET /venues', () => {
+        it('returns 200 and list of venues (no auth required)', async () => {
+            const list = [
+                {
+                    id: 'v1',
+                    organizerId: null,
+                    name: 'Arena',
+                    address: '1 St',
+                    city: 'City',
+                    state: 'ST',
+                    zip: '123',
+                    country: 'US',
+                    description: null,
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                },
+            ];
+            vi.mocked(mockVenuesService.findAll).mockResolvedValue(list);
+            const res = await app.inject({ method: 'GET', url: '/venues' });
+            expect(res.statusCode).toBe(200);
+            expect(res.json()).toHaveLength(1);
+            expect(res.json()[0].name).toBe('Arena');
+            expect(mockVenuesService.findAll).toHaveBeenCalledTimes(1);
+        });
+
+        it('returns empty array when no venues', async () => {
+            vi.mocked(mockVenuesService.findAll).mockResolvedValue([]);
+            const res = await app.inject({ method: 'GET', url: '/venues' });
+            expect(res.statusCode).toBe(200);
+            expect(res.json()).toEqual([]);
+        });
+    });
+
+    describe('GET /venues/:venueId', () => {
+        it('returns 200 and venue when found', async () => {
+            const venue = {
+                id: 'v1',
+                organizerId: null,
+                name: 'Main Hall',
+                address: '123 Main',
+                city: 'City',
+                state: 'ST',
+                zip: '12345',
+                country: 'US',
+                description: null,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            };
+            vi.mocked(mockVenuesService.findById).mockResolvedValue(venue);
+            const res = await app.inject({ method: 'GET', url: '/venues/v1' });
+            expect(res.statusCode).toBe(200);
+            expect(res.json().name).toBe('Main Hall');
+            expect(mockVenuesService.findById).toHaveBeenCalledWith('v1');
+        });
+
+        it('returns 404 when venue not found', async () => {
+            vi.mocked(mockVenuesService.findById).mockResolvedValue(null);
+            const res = await app.inject({ method: 'GET', url: '/venues/bad' });
+            expect(res.statusCode).toBe(404);
+            expect(res.json()).toMatchObject({ message: 'Venue not found' });
+        });
     });
 
     describe('POST /venues', () => {
